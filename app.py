@@ -13,10 +13,10 @@ from indicators import (
 
 # page setup
 st.set_page_config(page_title="Crypto Predictor", layout="wide")
-st.title("🧠 Crypto Prediction App")
-
+st.title("Crypto Report")
+st.header("a simple and easy to use prediction app")
 # sidebar
-st.sidebar.header("📊 Technical Indicators")
+st.sidebar.header(" Technical Indicators")
 indicators_selected = st.sidebar.multiselect(
     "Select Indicators to Display",
     ['SMA', 'Bollinger Bands', 'RSI', 'Hurst Exponent', 'ARIMA'],
@@ -25,7 +25,7 @@ indicators_selected = st.sidebar.multiselect(
 
 
 crypto = st.sidebar.selectbox("Select Cryptocurrency", ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'])
-interval = st.sidebar.selectbox("Select Time Interval", ['5m', '15m', '30m', '1h', '4h'])
+interval = st.sidebar.selectbox("Select Time Interval", ['5m', '15m', '30m', '1h', '4h', '1d'])
 
 if st.sidebar.button("Run Prediction"):
     st.session_state.run_model = True
@@ -52,7 +52,7 @@ binance_symbol = crypto.replace('/', '')
 df = fetch_binance_data(symbol=binance_symbol, interval=interval, limit=100)
 
 # Prediction Time 
-freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', '1h': '1H', '4h': '4H'}
+freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', '1h': '1H', '4h': '4H','1d': '1D'}
 freq = freq_map[interval]
 
 future_steps = len(df)
@@ -81,12 +81,12 @@ if 'RSI' in indicators_selected:
 
 if 'Hurst Exponent' in indicators_selected:
     df = calculate_hurst(df)
-    st.write(f"📈 Hurst Exponent: `{df['hurst'].iloc[-1]:.4f}`")
+    st.write(f"Hurst Exponent: `{df['hurst'].iloc[-1]:.4f}`")
 
 if 'ARIMA' in indicators_selected:
     arima_future = predict_arima(df, steps=len(df))
     fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')))
 
 
-st.subheader(f"📈 Live {crypto} Chart ({interval})")
+st.subheader(f"Live {crypto} Chart ({interval})")
 st.plotly_chart(fig, use_container_width=True)
