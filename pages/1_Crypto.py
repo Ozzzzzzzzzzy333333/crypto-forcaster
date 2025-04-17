@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.graph_objs as go
 import requests
 import time
+from plotly.subplots import make_subplots
+import plotly.graph_objs as go
 from indicators import (
     calculate_sma,
     calculate_bollinger_bands,
@@ -154,49 +156,101 @@ else:  # plot candlestick
     decreasing=dict(line=dict(color='red'))
 ))
 
+from plotly.subplots import make_subplots
 
-# Indicators
+# Calculate the number of rows for indicators
+indicator_rows = sum(1 for ind in indicators_selected if ind in ['RSI', 'MACD', 'OBV', 'ATR'])
+
+# Ensure indicator_rows is at least 1 to avoid division by zero
+if indicator_rows == 0:
+    indicator_rows = 1
+
+# Setup subplot layout
+row_count = 1 + indicator_rows  # 1 for price + indicators
+row_index = 2  # Start adding indicators from row 2
+
+fig = make_subplots(
+    rows=row_count, cols=1,
+    shared_xaxes=True,
+    vertical_spacing=0.05,
+    row_heights=[0.5] + [0.5 / indicator_rows] * indicator_rows,  # Adjust row heights
+    subplot_titles=["Price Chart"] +
+        [ind for ind in indicators_selected if ind in ['RSI', 'MACD', 'OBV', 'ATR']]
+)
+
+# Row 1: Price chart
+if chart_type == "Line Chart":
+    fig.add_trace(go.Scatter(
+        x=df['timestamp'], y=df['close'],
+        name='Close Price',
+        line=dict(color='white')
+    ), row=1, col=1)
+else:
+    fig.add_trace(go.Candlestick(
+        x=df['timestamp'],
+        open=df['open'], high=df['high'], low=df['low'], close=df['close'],
+        name='Candlestick',
+        increasing=dict(line=dict(color='green')),
+        decreasing=dict(line=dict(color='red'))
+    ), row=1, col=1)
+
+# Add overlays to main chart
 if 'SMA' in indicators_selected:
     df = calculate_sma(df)
-    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['sma'], name='SMA'))
-
-if 'Bollinger Bands' in indicators_selected:
-    df = calculate_bollinger_bands(df)
-    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_upper'], name='Upper BB', line=dict(dash='dot')))
-    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_lower'], name='Lower BB', line=dict(dash='dot')))
-
-if 'RSI' in indicators_selected:
-    df = calculate_rsi(df)
-    st.line_chart(df.set_index('timestamp')['rsi'], use_container_width=True)
-
-if 'Hurst Exponent' in indicators_selected:
-    df = calculate_hurst(df)
-    st.write(f"Hurst Exponent: `{df['hurst'].iloc[-1]:.4f}`")
-
-if 'ARIMA' in indicators_selected:
-    arima_future = predict_arima(df, steps=len(df))
-    fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')))
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['sma'], name='SMA'), row=1, col=1)
 
 if 'EMA' in indicators_selected:
     df = calculate_ema(df)
-    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['ema'], name='EMA', line=dict(dash='dot')))
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['ema'], name='EMA', line=dict(dash='dot')), row=1, col=1)
+
+if 'Bollinger Bands' in indicators_selected:
+    df = calculate_bollinger_bands(df)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_upper'], name='Upper BB', line=dict(dash='dot')), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_lower'], name='Lower BB', line=dict(dash='dot')), row=1, col=1)
+
+if 'ARIMA' in indicators_selected:
+    arima_future = predict_arima(df, steps=len(df))
+    fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')), row=1, col=1)
+
+# Indicators with their own subplots
+if 'RSI' in indicators_selected:
+    df = calculate_rsi(df)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['rsi'], name='RSI', line=dict(color='orange')), row=row_index, col=1)
+    fig.add_hline(y=70, line=dict(color='red', dash='dash'), row=row_index, col=1)
+    fig.add_hline(y=30, line=dict(color='green', dash='dash'), row=row_index, col=1)
+    fig.update_yaxes(title_text='RSI', row=row_index, col=1)
+    row_index += 1
 
 if 'MACD' in indicators_selected:
     df = calculate_macd(df)
-    st.line_chart(df.set_index('timestamp')[['macd', 'macd_signal']], use_container_width=True)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['macd'], name='MACD', line=dict(color='cyan')), row=row_index, col=1)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['macd_signal'], name='Signal', line=dict(color='magenta', dash='dot')), row=row_index, col=1)
+    fig.update_yaxes(title_text='MACD', row=row_index, col=1)
+    row_index += 1
 
 if 'OBV' in indicators_selected:
     df = calculate_obv(df)
-    st.line_chart(df.set_index('timestamp')['obv'], use_container_width=True)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['obv'], name='OBV', line=dict(color='blue')), row=row_index, col=1)
+    fig.update_yaxes(title_text='OBV', row=row_index, col=1)
+    row_index += 1
 
 if 'ATR' in indicators_selected:
     df = calculate_atr(df)
-    st.line_chart(df.set_index('timestamp')['atr'], use_container_width=True)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['atr'], name='ATR', line=dict(color='yellow')), row=row_index, col=1)
+    fig.update_yaxes(title_text='ATR', row=row_index, col=1)
+    row_index += 1
 
+# General layout
+fig.update_layout(
+    height=300 * row_count,
+    title=f"{crypto} Price & Indicators ({interval})",
+    template="plotly_dark",
+    showlegend=True,
+    xaxis_rangeslider_visible=False
+)
 
-
-st.subheader(f"Live {crypto} Chart ({interval})")
 st.plotly_chart(fig, use_container_width=True)
+
 while True:
     time.sleep(60)
     st.rerun()

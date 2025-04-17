@@ -2,16 +2,17 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 import yfinance as yf
-import time
 from indicators import (
     calculate_sma,
     calculate_bollinger_bands,
     calculate_rsi,
     calculate_hurst,
-    predict_arima
+    predict_arima,
+    calculate_macd,
+    calculate_atr
 )
-
 
 # page setup
 st.set_page_config(page_title="Stock Predictor", layout="wide")
@@ -22,7 +23,7 @@ st.header("A simple and easy-to-use prediction app")
 st.sidebar.header("Technical Indicators")
 indicators_selected = st.sidebar.multiselect(
     "Select Indicators to Display",
-    ['SMA', 'Bollinger Bands', 'RSI', 'Hurst Exponent', 'ARIMA'],
+    ['SMA', 'Bollinger Bands', 'RSI', 'ATR', 'Hurst Exponent', 'ARIMA'],
     default=['SMA', 'Bollinger Bands']
 )
 
@@ -38,15 +39,6 @@ if st.sidebar.button("Run Prediction"):
     st.session_state.run_model = True
 else:
     st.session_state.run_model = False
-
-# interval map
-interval_map = {
-    '5m': '5m',
-    '15m': '15m',
-    '30m': '30m',
-    '1h': '60m',
-    '1d': '1d'
-}
 
 # fetch stock data
 def fetch_stock_data(ticker='AAPL', interval='60m', period='7d'):
@@ -67,10 +59,6 @@ def fetch_stock_data(ticker='AAPL', interval='60m', period='7d'):
     # Ensure the timestamp column is in datetime format
     df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    # Convert to Europe/London timezone if applicable
-    if not df['timestamp'].dt.tz:
-        df['timestamp'] = df['timestamp'].dt.tz_localize('UTC').dt.tz_convert('Europe/London')
-
     # Rename columns for consistency
     df = df[['timestamp', 'Open', 'High', 'Low', 'Close']].rename(columns={
         'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close'
@@ -78,32 +66,42 @@ def fetch_stock_data(ticker='AAPL', interval='60m', period='7d'):
     return df
 
 for stock in selected_stocks:
-    df = fetch_stock_data(ticker=stock, interval=interval_map[interval], period='7d')
+    df = fetch_stock_data(ticker=stock, interval=interval, period='7d')
 
     if df is None:
         continue
 
-    # future projection (dummy timestamps for visualization)
-    freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', '1h': '1H', '1d': '1D'}
-    freq = freq_map[interval]
-    future_steps = len(df)
-    last_time = df['timestamp'].iloc[-1]
-    future_times = pd.date_range(start=last_time + pd.Timedelta(freq), periods=future_steps, freq=freq)
-    future_df = pd.DataFrame({'timestamp': future_times, 'close': [None] * future_steps})
-    combined_df = pd.concat([df, future_df], ignore_index=True)
-
-    # chart type toggle
+    # Chart type toggle
     chart_type = st.radio("Select chart type", ["Line Chart", "Candlestick"], horizontal=True, key=f"chart_{stock}")
 
-    fig = go.Figure()
+    # Calculate the number of rows for indicators
+    indicator_rows = sum(1 for ind in indicators_selected if ind in ['RSI', 'ATR'])
 
+    # Ensure indicator_rows is at least 1 to avoid division by zero
+    if indicator_rows == 0:
+        indicator_rows = 1
+
+    # Setup subplot layout
+    row_count = 1 + indicator_rows  # 1 for price + indicators
+    row_index = 2  # Start adding indicators from row 2
+
+    fig = make_subplots(
+        rows=row_count, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        row_heights=[0.5] + [0.5 / indicator_rows] * indicator_rows,
+        subplot_titles=["Price Chart"] +
+            [ind for ind in indicators_selected if ind in ['RSI', 'ATR']]
+    )
+
+    # Add price chart
     if chart_type == "Line Chart":
         fig.add_trace(go.Scatter(
-            x=combined_df['timestamp'],
-            y=combined_df['close'],
+            x=df['timestamp'],
+            y=df['close'],
             mode='lines',
             name='Price'
-        ))
+        ), row=1, col=1)
     else:  # Candlestick
         fig.add_trace(go.Candlestick(
             x=df['timestamp'],
@@ -114,21 +112,27 @@ for stock in selected_stocks:
             name='Candlestick',
             increasing=dict(line=dict(color='green')),
             decreasing=dict(line=dict(color='red'))
-        ))
+        ), row=1, col=1)
 
-    # indicators
+    # Add indicators
     if 'SMA' in indicators_selected:
         df = calculate_sma(df)
-        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['sma'], name='SMA'))
+        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['sma'], name='SMA'), row=1, col=1)
 
     if 'Bollinger Bands' in indicators_selected:
         df = calculate_bollinger_bands(df)
-        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_upper'], name='Upper BB', line=dict(dash='dot')))
-        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_lower'], name='Lower BB', line=dict(dash='dot')))
+        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_upper'], name='Upper BB', line=dict(dash='dot')), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_lower'], name='Lower BB', line=dict(dash='dot')), row=1, col=1)
 
     if 'RSI' in indicators_selected:
         df = calculate_rsi(df)
-        st.line_chart(df.set_index('timestamp')['rsi'], use_container_width=True)
+        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['rsi'], name='RSI'), row=row_index, col=1)
+        row_index += 1
+
+    if 'ATR' in indicators_selected:
+        df = calculate_atr(df)
+        fig.add_trace(go.Scatter(x=df['timestamp'], y=df['atr'], name='ATR'), row=row_index, col=1)
+        row_index += 1
 
     if 'Hurst Exponent' in indicators_selected:
         df = calculate_hurst(df)
@@ -136,11 +140,8 @@ for stock in selected_stocks:
 
     if 'ARIMA' in indicators_selected:
         arima_future = predict_arima(df, steps=len(df))
-        fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')))
+        fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')), row=1, col=1)
 
-    # output chart
+    # Output chart
     st.subheader(f"📈 Live {stock} Chart ({interval})")
     st.plotly_chart(fig, use_container_width=True)
-while True:
-    time.sleep(60)
-    st.rerun()
