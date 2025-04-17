@@ -32,11 +32,6 @@ selected_pairs = st.sidebar.multiselect(
     ['EUR/USD', 'GBP/USD', 'USD/JPY'],  # Top 3 Forex pairs
     default=['EUR/USD']
 )
-
-if st.sidebar.button("Run Prediction"):
-    st.session_state.run_model = True
-else:
-    st.session_state.run_model = False
 # Button to toggle the indicator guide
 if st.sidebar.button("📘 What do these indicators mean?"):
 

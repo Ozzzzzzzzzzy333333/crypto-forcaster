@@ -35,11 +35,6 @@ selected_stocks = st.sidebar.multiselect(
 
 interval = st.sidebar.selectbox("Select Time Interval", ['5m', '15m', '30m', '1h', '1d'])
 
-if st.sidebar.button("Run Prediction"):
-    st.session_state.run_model = True
-else:
-    st.session_state.run_model = False
-
 # fetch stock data
 def fetch_stock_data(ticker='AAPL', interval='60m', period='7d'):
     stock = yf.Ticker(ticker)

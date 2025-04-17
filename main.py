@@ -74,5 +74,10 @@ st.markdown("""
     <div class="label">Stocks</div>
     <div class="label">Forex</div>
 </div>
+            
+
 """, unsafe_allow_html=True)
+st.markdown('<h3 class="centered-text">Note: The Crypto option is recomeneded,' \
+' this is due to API limits and' \
+' the current stage of development</h3>', unsafe_allow_html=True)
 
