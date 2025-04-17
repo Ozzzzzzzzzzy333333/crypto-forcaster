@@ -10,9 +10,9 @@ from indicators import (
     calculate_rsi,
     calculate_hurst,
     predict_arima,
-    calculate_ema,  # Add this
-    calculate_macd,  # Add this
-    calculate_obv,   # Add this
+    calculate_ema,  
+    calculate_macd,  
+    calculate_obv,   
     calculate_atr 
 )
 
@@ -40,6 +40,47 @@ if st.sidebar.button("Run Prediction"):
     st.session_state.run_model = True
 else:
     st.session_state.run_model = False
+
+
+# Button to toggle the indicator guide
+if st.sidebar.button("📘 What do these indicators mean?"):
+
+    st.sidebar.markdown("Technical Indicator Guide")
+
+    st.sidebar.markdown("SMA")
+    st.sidebar.markdown("is the avarge price, showing trend direction.")
+
+    st.sidebar.markdown("EMA")
+    st.sidebar.markdown("Similar to SMA but gives more weight to recent prices.")
+
+    st.sidebar.markdown("RSI")
+    st.sidebar.markdown("Shows if something is overbought or oversold (0–100)." \
+    "Generally, values above 70 are considered overbought," \
+    " while values below 30 are considered oversold. ")
+
+    st.sidebar.markdown("MACD")
+    st.sidebar.markdown("Measures momentum using two moving averages. " \
+    "which can help identify potential buy/sell signals. " )
+
+    st.sidebar.markdown("Bollinger Bands")
+    st.sidebar.markdown("Tracks volatility using bands around the price." \
+    "The bands widen when volatility increases and narrow when it decreases.")
+
+    st.sidebar.markdown("ARIMA")
+    st.sidebar.markdown("Uses past data to forecast future prices.")
+
+    st.sidebar.markdown("OBV")
+    st.sidebar.markdown("Measures buying/selling pressure using volume." \
+    " A rising OBV indicates buying pressure, while a falling OBV indicates selling pressure.")
+
+    st.sidebar.markdown("ATR")
+    st.sidebar.markdown("Measures how much the price moves on average." \
+    " A higher ATR indicates more volatility, while a lower ATR indicates less.")
+
+    st.sidebar.markdown("Hurst Exponent")
+    st.sidebar.markdown("Tells if price movements are random or trending." \
+    " A value of 0.5 indicates a more 'random' movement, while values above 0.5 " \
+    "indicate a clearer trend.")
 
 # Binance API 
 def fetch_binance_data(symbol='BTCUSDT', interval='1h', limit=200):
