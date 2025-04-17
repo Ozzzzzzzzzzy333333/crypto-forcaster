@@ -47,6 +47,10 @@ st.markdown("""
         font-size: 1.2rem;
         color: #888;
     }
+    /* Center the title and subtitle */
+    .centered-text {
+        text-align: center;
+    }
     /* Hide Streamlit sidebar */
     [data-testid="stSidebar"] {
         display: none;
@@ -55,8 +59,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title
-st.title(" Market Prediction App")
-st.subheader("Choose your market to begin")
+st.markdown('<h1 class="centered-text">Market Prediction App</h1>', unsafe_allow_html=True)
+st.markdown('<h2 class="centered-text">Choose your market to begin</h2>', unsafe_allow_html=True)
 
 # Buttons (styled as links)
 st.markdown("""

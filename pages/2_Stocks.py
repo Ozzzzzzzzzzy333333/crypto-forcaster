@@ -52,10 +52,26 @@ interval_map = {
 def fetch_stock_data(ticker='AAPL', interval='60m', period='7d'):
     stock = yf.Ticker(ticker)
     df = stock.history(interval=interval, period=period)
-    df.reset_index(inplace=True)
-    df.rename(columns={'Datetime': 'timestamp'}, inplace=True)
-    df['timestamp'] = df['timestamp'].dt.tz_convert('Europe/London')
 
+    if df.empty:
+        st.error(f"No data found for {ticker} with interval {interval} and period {period}.")
+        return None
+
+    # Reset index and handle the timestamp column
+    df.reset_index(inplace=True)
+    if 'Datetime' in df.columns:
+        df.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+    elif 'Date' in df.columns:
+        df.rename(columns={'Date': 'timestamp'}, inplace=True)
+
+    # Ensure the timestamp column is in datetime format
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+    # Convert to Europe/London timezone if applicable
+    if not df['timestamp'].dt.tz:
+        df['timestamp'] = df['timestamp'].dt.tz_localize('UTC').dt.tz_convert('Europe/London')
+
+    # Rename columns for consistency
     df = df[['timestamp', 'Open', 'High', 'Low', 'Close']].rename(columns={
         'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close'
     })
@@ -63,6 +79,9 @@ def fetch_stock_data(ticker='AAPL', interval='60m', period='7d'):
 
 for stock in selected_stocks:
     df = fetch_stock_data(ticker=stock, interval=interval_map[interval], period='7d')
+
+    if df is None:
+        continue
 
     # future projection (dummy timestamps for visualization)
     freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', '1h': '1H', '1d': '1D'}
