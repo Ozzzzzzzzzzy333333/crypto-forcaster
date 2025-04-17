@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objs as go
 import requests
+import time
 from indicators import (
     calculate_sma,
     calculate_bollinger_bands,
@@ -23,8 +24,12 @@ indicators_selected = st.sidebar.multiselect(
     default=['SMA', 'Bollinger Bands']
 )
 
+cryptos = st.sidebar.multiselect(
+    "Select Cryptocurrencies", 
+    ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'], 
+    default=['BTC/USDT']
+)
 
-crypto = st.sidebar.selectbox("Select Cryptocurrency", ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'])
 interval = st.sidebar.selectbox("Select Time Interval", ['5m', '15m', '30m', '1h', '4h', '1d'])
 
 if st.sidebar.button("Run Prediction"):
@@ -44,14 +49,18 @@ def fetch_binance_data(symbol='BTCUSDT', interval='1h', limit=200):
         'taker_buy_base', 'taker_buy_quote', 'ignore'
     ])
 
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Europe/London')
+
     df['close'] = df['close'].astype(float)
-    return df[['timestamp', 'close']]
+    return df[['timestamp', 'open', 'high', 'low', 'close']]
 
-binance_symbol = crypto.replace('/', '')
-df = fetch_binance_data(symbol=binance_symbol, interval=interval, limit=100)
 
-# Prediction Time 
+for crypto in cryptos:
+    binance_symbol = crypto.replace('/', '')
+    df = fetch_binance_data(symbol=binance_symbol, interval=interval, limit=100)
+    
+
+# time 
 freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', '1h': '1H', '4h': '4H','1d': '1D'}
 freq = freq_map[interval]
 
@@ -60,10 +69,39 @@ last_time = df['timestamp'].iloc[-1]
 future_times = pd.date_range(start=last_time + pd.Timedelta(freq), periods=future_steps, freq=freq)
 future_df = pd.DataFrame({'timestamp': future_times, 'close': [None] * future_steps})
 combined_df = pd.concat([df, future_df], ignore_index=True)
-
-#  Plot 
+chart_type = st.radio("Select chart type", ["Line Chart", "Candlestick"], horizontal=True)
+# plot 
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=combined_df['timestamp'], y=combined_df['close'], mode='lines', name='Price'))
+# plot line graph
+if chart_type == "Line Chart":
+    fig.add_trace(go.Scatter(
+        x=combined_df['timestamp'],
+        y=combined_df['close'],
+        mode='lines',
+        name='Price'
+    ))
+else:  # plot candlestick
+    candle_df = df.copy()
+    candle_data = fetch_binance_data(symbol=binance_symbol, interval=interval, limit=100)
+
+    candle_data_full = pd.DataFrame(candle_data)
+    candle_data_full['open'] = candle_data['open'].astype(float)
+    candle_data_full['high'] = candle_data['high'].astype(float)
+    candle_data_full['low'] = candle_data['low'].astype(float)
+    candle_data_full['close'] = candle_data['close'].astype(float)
+    candle_data_full['timestamp'] = pd.to_datetime(candle_data['timestamp'], unit='ms')
+
+    fig.add_trace(go.Candlestick(
+    x=candle_data_full['timestamp'],
+    open=candle_data_full['open'],
+    high=candle_data_full['high'],
+    low=candle_data_full['low'],
+    close=candle_data_full['close'],
+    name='Candlestick',
+    increasing=dict(line=dict(color='green')),
+    decreasing=dict(line=dict(color='red'))
+))
+
 
 # Indicators
 if 'SMA' in indicators_selected:
@@ -90,3 +128,6 @@ if 'ARIMA' in indicators_selected:
 
 st.subheader(f"Live {crypto} Chart ({interval})")
 st.plotly_chart(fig, use_container_width=True)
+while True:
+    time.sleep(60)
+    st.rerun()
