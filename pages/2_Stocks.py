@@ -140,3 +140,6 @@ for stock in selected_stocks:
     # Output chart
     st.subheader(f"📈 Live {stock} Chart ({interval})")
     st.plotly_chart(fig, use_container_width=True)
+
+st.markdown('<h3 class="centered-text">This data is provided by yfinance</h3>', unsafe_allow_html=True)
+

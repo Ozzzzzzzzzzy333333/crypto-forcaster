@@ -251,6 +251,9 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
+st.markdown('<h3 class="centered-text">This data is provided by Binance</h3>', unsafe_allow_html=True)
+
 while True:
     time.sleep(60)
     st.rerun()
+
