@@ -9,7 +9,11 @@ from indicators import (
     calculate_bollinger_bands,
     calculate_rsi,
     calculate_hurst,
-    predict_arima
+    predict_arima,
+    calculate_ema,  # Add this
+    calculate_macd,  # Add this
+    calculate_obv,   # Add this
+    calculate_atr 
 )
 
 # page setup
@@ -20,7 +24,7 @@ st.header("a simple and easy to use prediction app")
 st.sidebar.header(" Technical Indicators")
 indicators_selected = st.sidebar.multiselect(
     "Select Indicators to Display",
-    ['SMA', 'Bollinger Bands', 'RSI', 'Hurst Exponent', 'ARIMA'],
+    ['SMA', 'EMA', 'Bollinger Bands', 'RSI', 'MACD', 'OBV', 'ATR', 'Hurst Exponent', 'ARIMA'],
     default=['SMA', 'Bollinger Bands']
 )
 
@@ -49,10 +53,17 @@ def fetch_binance_data(symbol='BTCUSDT', interval='1h', limit=200):
         'taker_buy_base', 'taker_buy_quote', 'ignore'
     ])
 
+    # Convert timestamp to datetime
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Europe/London')
 
+    # Convert relevant columns to numeric
+    df['open'] = df['open'].astype(float)
+    df['high'] = df['high'].astype(float)
+    df['low'] = df['low'].astype(float)
     df['close'] = df['close'].astype(float)
-    return df[['timestamp', 'open', 'high', 'low', 'close']]
+    df['volume'] = df['volume'].astype(float)
+
+    return df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
 
 
 for crypto in cryptos:
@@ -124,6 +135,23 @@ if 'Hurst Exponent' in indicators_selected:
 if 'ARIMA' in indicators_selected:
     arima_future = predict_arima(df, steps=len(df))
     fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')))
+
+if 'EMA' in indicators_selected:
+    df = calculate_ema(df)
+    fig.add_trace(go.Scatter(x=df['timestamp'], y=df['ema'], name='EMA', line=dict(dash='dot')))
+
+if 'MACD' in indicators_selected:
+    df = calculate_macd(df)
+    st.line_chart(df.set_index('timestamp')[['macd', 'macd_signal']], use_container_width=True)
+
+if 'OBV' in indicators_selected:
+    df = calculate_obv(df)
+    st.line_chart(df.set_index('timestamp')['obv'], use_container_width=True)
+
+if 'ATR' in indicators_selected:
+    df = calculate_atr(df)
+    st.line_chart(df.set_index('timestamp')['atr'], use_container_width=True)
+
 
 
 st.subheader(f"Live {crypto} Chart ({interval})")

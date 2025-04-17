@@ -37,6 +37,10 @@ st.markdown("""
         box-shadow: 0 0 30px green;
         background-color: #222;
     }
+    .forex:hover {
+        box-shadow: 0 0 30px yellow; 
+        background-color: #222;
+    }
     .label {
         text-align: center;
         margin-top: 0.5rem;
@@ -51,18 +55,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title
-st.title("🧠 Market Prediction App")
+st.title(" Market Prediction App")
 st.subheader("Choose your market to begin")
 
 # Buttons (styled as links)
 st.markdown("""
 <div class="container">
     <a href="/Crypto" class="circle-button crypto">₿</a>
-    <a href="/Stocks" class="circle-button stocks">£</a>
+    <a href="/Stocks" class="circle-button stocks">🗠</a>
+    <a href="/Forex" class="circle-button forex">£</a>
 </div>
 <div class="container">
     <div class="label">Crypto</div>
     <div class="label">Stocks</div>
+    <div class="label">Forex</div>
 </div>
 """, unsafe_allow_html=True)
 

@@ -5,6 +5,37 @@ from numpy import log, std, subtract
 import warnings
 warnings.filterwarnings("ignore")
 
+# Ema
+def calculate_ema(df, span=20):
+    df['ema'] = df['close'].ewm(span=span, adjust=False).mean()
+    return df
+
+# MACD ]
+def calculate_macd(df, fast=12, slow=26, signal=9):
+    df['ema_fast'] = df['close'].ewm(span=fast, adjust=False).mean()
+    df['ema_slow'] = df['close'].ewm(span=slow, adjust=False).mean()
+    df['macd'] = df['ema_fast'] - df['ema_slow']
+    df['macd_signal'] = df['macd'].ewm(span=signal, adjust=False).mean()
+    df['macd_hist'] = df['macd'] - df['macd_signal']
+    return df
+
+# OBV
+def calculate_obv(df):
+    df['obv'] = 0
+    df['obv'][1:] = np.where(df['close'][1:] > df['close'][:-1].values,
+                             df['volume'][1:], 
+                             np.where(df['close'][1:] < df['close'][:-1].values,
+                                      -df['volume'][1:], 0))
+    df['obv'] = df['obv'].cumsum()
+    return df
+
+# Average True Range (ATR)
+def calculate_atr(df, period=14):
+    df['tr'] = np.maximum(df['high'] - df['low'], 
+                          np.maximum(abs(df['high'] - df['close'].shift()), 
+                                     abs(df['low'] - df['close'].shift())))
+    df['atr'] = df['tr'].rolling(window=period).mean()
+    return df
 # SMA
 def calculate_sma(df, window=20):
     df['sma'] = df['close'].rolling(window=window).mean()
