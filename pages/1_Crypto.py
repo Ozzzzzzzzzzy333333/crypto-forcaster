@@ -125,60 +125,34 @@ future_df = pd.DataFrame({'timestamp': future_times, 'close': [None] * future_st
 combined_df = pd.concat([df, future_df], ignore_index=True)
 chart_type = st.radio("Select chart type", ["Line Chart", "Candlestick"], horizontal=True)
 # plot 
-fig = go.Figure()
-# plot line graph
-if chart_type == "Line Chart":
-    fig.add_trace(go.Scatter(
-        x=combined_df['timestamp'],
-        y=combined_df['close'],
-        mode='lines',
-        name='Price'
-    ))
-else:  # plot candlestick
-    candle_df = df.copy()
-    candle_data = fetch_binance_data(symbol=binance_symbol, interval=interval, limit=100)
 
-    candle_data_full = pd.DataFrame(candle_data)
-    candle_data_full['open'] = candle_data['open'].astype(float)
-    candle_data_full['high'] = candle_data['high'].astype(float)
-    candle_data_full['low'] = candle_data['low'].astype(float)
-    candle_data_full['close'] = candle_data['close'].astype(float)
-    candle_data_full['timestamp'] = pd.to_datetime(candle_data['timestamp'], unit='ms')
-
-    fig.add_trace(go.Candlestick(
-    x=candle_data_full['timestamp'],
-    open=candle_data_full['open'],
-    high=candle_data_full['high'],
-    low=candle_data_full['low'],
-    close=candle_data_full['close'],
-    name='Candlestick',
-    increasing=dict(line=dict(color='green')),
-    decreasing=dict(line=dict(color='red'))
-))
-
-from plotly.subplots import make_subplots
-
-# Calculate the number of rows for indicators
+# Determine if any indicators are selected
 indicator_rows = sum(1 for ind in indicators_selected if ind in ['RSI', 'MACD', 'OBV', 'ATR'])
 
-# Ensure indicator_rows is at least 1 to avoid division by zero
-if indicator_rows == 0:
-    indicator_rows = 1
-
-# Setup subplot layout
+# Ensure at least one row for the price chart
 row_count = 1 + indicator_rows  # 1 for price + indicators
 row_index = 2  # Start adding indicators from row 2
 
-fig = make_subplots(
-    rows=row_count, cols=1,
-    shared_xaxes=True,
-    vertical_spacing=0.05,
-    row_heights=[0.5] + [0.5 / indicator_rows] * indicator_rows,  # Adjust row heights
-    subplot_titles=["Price Chart"] +
-        [ind for ind in indicators_selected if ind in ['RSI', 'MACD', 'OBV', 'ATR']]
-)
+# Setup subplot layout
+if indicator_rows > 0:
+    fig = make_subplots(
+        rows=row_count, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        row_heights=[0.5] + [0.5 / indicator_rows] * indicator_rows,
+        subplot_titles=["Price Chart"] +
+            [ind for ind in indicators_selected if ind in ['RSI', 'MACD', 'OBV', 'ATR']]
+    )
+else:
+    # If no indicators are selected, create a single-row layout
+    fig = make_subplots(
+        rows=1, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        subplot_titles=["Price Chart"]
+    )
 
-# Row 1: Price chart
+# Add price chart
 if chart_type == "Line Chart":
     fig.add_trace(go.Scatter(
         x=df['timestamp'], y=df['close'],
@@ -208,11 +182,7 @@ if 'Bollinger Bands' in indicators_selected:
     fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_upper'], name='Upper BB', line=dict(dash='dot')), row=1, col=1)
     fig.add_trace(go.Scatter(x=df['timestamp'], y=df['bb_lower'], name='Lower BB', line=dict(dash='dot')), row=1, col=1)
 
-if 'ARIMA' in indicators_selected:
-    arima_future = predict_arima(df, steps=len(df))
-    fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')), row=1, col=1)
-
-# Indicators with their own subplots
+# Add indicators with their own subplots
 if 'RSI' in indicators_selected:
     df = calculate_rsi(df)
     fig.add_trace(go.Scatter(x=df['timestamp'], y=df['rsi'], name='RSI', line=dict(color='orange')), row=row_index, col=1)
@@ -246,10 +216,93 @@ fig.update_layout(
     title=f"{crypto} Price & Indicators ({interval})",
     template="plotly_dark",
     showlegend=True,
+    xaxis=dict(
+        title="Time",
+        type="date",
+        tickformat="%Y-%m-%d %H:%M",
+        rangeslider=dict(visible=False)
+    ),
     xaxis_rangeslider_visible=False
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# Trend Summary Section
+st.subheader("📊 Indicator Summary & Trend Signals")
+
+def display_signal(name, trend, details):
+    color = 'green' if trend == 'up' else 'red'
+    arrow = '⬆️' if trend == 'up' else '⬇️'
+    st.markdown(
+        f"<div style='padding:8px;border-radius:10px;background-color:#1e1e1e;margin-bottom:10px;'>"
+        f"<strong style='color:{color};'>{arrow} {name}</strong><br>"
+        f"<span style='color:#ccc;'>{details}</span>"
+        f"</div>", unsafe_allow_html=True
+    )
+
+for indicator in indicators_selected:
+    if indicator == 'SMA':
+        trend = 'up' if df['sma'].iloc[-1] > df['sma'].iloc[-2] else 'down'
+        display_signal("SMA", trend, "SMA is trending " + trend + ". Possible trend continuation.")
+        
+    elif indicator == 'EMA':
+        trend = 'up' if df['ema'].iloc[-1] > df['ema'].iloc[-2] else 'down'
+        display_signal("EMA", trend, "EMA is moving " + trend + ". Short-term price momentum.")
+
+    elif indicator == 'RSI':
+        last_rsi = df['rsi'].iloc[-1]
+        if last_rsi > 70:
+            display_signal("RSI", 'down', f"RSI at {last_rsi:.2f}. Overbought, potential pullback.")
+        elif last_rsi < 30:
+            display_signal("RSI", 'up', f"RSI at {last_rsi:.2f}. Oversold, possible rebound.")
+        else:
+            trend = 'up' if last_rsi > df['rsi'].iloc[-2] else 'down'
+            display_signal("RSI", trend, f"RSI trending {trend}. Neutral zone.")
+
+    elif indicator == 'MACD':
+        trend = 'up' if df['macd'].iloc[-1] > df['macd_signal'].iloc[-1] else 'down'
+        display_signal("MACD", trend, "MACD " + ("above" if trend == 'up' else "below") + " signal line.")
+
+    elif indicator == 'OBV':
+        trend = 'up' if df['obv'].iloc[-1] > df['obv'].iloc[-2] else 'down'
+        display_signal("OBV", trend, "OBV is rising." if trend == 'up' else "OBV is falling.")
+
+    elif indicator == 'ATR':
+        atr_change = df['atr'].iloc[-1] - df['atr'].iloc[-2]
+        trend = 'up' if atr_change > 0 else 'down'
+        display_signal("ATR", trend, "Volatility is increasing." if trend == 'up' else "Volatility is decreasing.")
+
+    elif indicator == 'Bollinger Bands':
+        last_close = df['close'].iloc[-1]
+        if last_close > df['bb_upper'].iloc[-1]:
+            display_signal("Bollinger Bands", 'down', "Price above upper band — possible overbought.")
+        elif last_close < df['bb_lower'].iloc[-1]:
+            display_signal("Bollinger Bands", 'up', "Price below lower band — possible oversold.")
+        else:
+            display_signal("Bollinger Bands", 'up', "Price within bands — stable trend.")
+
+    elif indicator == 'Hurst Exponent':
+        hurst_value = calculate_hurst(df)  # Ensure this function returns a numeric value or Series
+        if isinstance(hurst_value, pd.Series):  # If it's a Series, extract the last value
+            hurst_value = hurst_value.iloc[-1]
+        elif isinstance(hurst_value, pd.DataFrame):  # If it's a DataFrame, extract the relevant column and value
+            hurst_value = hurst_value.iloc[-1, 0]  # Adjust column index as needed
+
+        if isinstance(hurst_value, (int, float)):  # Ensure it's a numeric value
+            if hurst_value > 0.5:
+                display_signal("Hurst Exponent", 'up', f"Hurst={hurst_value:.2f} suggests trending behavior.")
+            else:
+                display_signal("Hurst Exponent", 'down', f"Hurst={hurst_value:.2f} suggests randomness.")
+        else:
+            display_signal("Hurst Exponent", 'down', "Hurst Exponent calculation failed.")
+
+    elif indicator == 'ARIMA':
+        try:
+            last_pred = predict_arima(df, steps=2)['arima_pred']
+            trend = 'up' if last_pred.iloc[-1] > last_pred.iloc[-2] else 'down'
+            display_signal("ARIMA", trend, f"Forecasting {trend} movement.")
+        except:
+            display_signal("ARIMA", 'down', "ARIMA forecast not available.")
 
 st.markdown('<h3 class="centered-text">This data is provided by Binance</h3>', unsafe_allow_html=True)
 

@@ -185,7 +185,65 @@ for pair in selected_pairs:
         fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')), row=1, col=1)
 
     # Output chart
-    st.subheader(f"📈 Live {pair} Chart ({fixed_interval})")
+    st.subheader(f"Live {pair} Chart ({fixed_interval})")
     st.plotly_chart(fig, use_container_width=True)
-    
+
+# Trend Summary Section
+st.subheader("Indicator Summary & Trend Signals")
+
+def display_signal(name, trend, details):
+    color = 'green' if trend == 'up' else 'red'
+    arrow = '⬆️' if trend == 'up' else '⬇️'
+    st.markdown(
+        f"<div style='padding:8px;border-radius:10px;background-color:#1e1e1e;margin-bottom:10px;'>"
+        f"<strong style='color:{color};'>{arrow} {name}</strong><br>"
+        f"<span style='color:#ccc;'>{details}</span>"
+        f"</div>", unsafe_allow_html=True
+    )
+
+for indicator in indicators_selected:
+    if indicator == 'SMA':
+        trend = 'up' if df['sma'].iloc[-1] > df['sma'].iloc[-2] else 'down'
+        display_signal("SMA", trend, "SMA is trending " + trend + ". Possible trend continuation.")
+        
+    elif indicator == 'EMA':
+        trend = 'up' if df['ema'].iloc[-1] > df['ema'].iloc[-2] else 'down'
+        display_signal("EMA", trend, "EMA is moving " + trend + ". Short-term price momentum.")
+
+    elif indicator == 'RSI':
+        last_rsi = df['rsi'].iloc[-1]
+        if last_rsi > 70:
+            display_signal("RSI", 'down', f"RSI at {last_rsi:.2f}. Overbought, potential pullback.")
+        elif last_rsi < 30:
+            display_signal("RSI", 'up', f"RSI at {last_rsi:.2f}. Oversold, possible rebound.")
+        else:
+            trend = 'up' if last_rsi > df['rsi'].iloc[-2] else 'down'
+            display_signal("RSI", trend, f"RSI trending {trend}. Neutral zone.")
+
+    elif indicator == 'MACD':
+        trend = 'up' if df['macd'].iloc[-1] > df['macd_signal'].iloc[-1] else 'down'
+        display_signal("MACD", trend, "MACD " + ("above" if trend == 'up' else "below") + " signal line.")
+
+    elif indicator == 'ATR':
+        atr_change = df['atr'].iloc[-1] - df['atr'].iloc[-2]
+        trend = 'up' if atr_change > 0 else 'down'
+        display_signal("ATR", trend, "Volatility is increasing." if trend == 'up' else "Volatility is decreasing.")
+
+    elif indicator == 'Bollinger Bands':
+        last_close = df['close'].iloc[-1]
+        if last_close > df['bb_upper'].iloc[-1]:
+            display_signal("Bollinger Bands", 'down', "Price above upper band — possible overbought.")
+        elif last_close < df['bb_lower'].iloc[-1]:
+            display_signal("Bollinger Bands", 'up', "Price below lower band — possible oversold.")
+        else:
+            display_signal("Bollinger Bands", 'up', "Price within bands — stable trend.")
+
+    elif indicator == 'ARIMA':
+        try:
+            last_pred = predict_arima(df, steps=2)['arima_pred']
+            trend = 'up' if last_pred.iloc[-1] > last_pred.iloc[-2] else 'down'
+            display_signal("ARIMA", trend, f"Forecasting {trend} movement.")
+        except:
+            display_signal("ARIMA", 'down', "ARIMA forecast not available.")
+
 st.markdown('<h3 class="centered-text">This data is provided by yfinance</h3>', unsafe_allow_html=True)
