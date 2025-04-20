@@ -714,3 +714,7 @@ tornado.websocket.WebSocketClosedError
 2025-04-20 11:22:41,202 - INFO - Training completed - Accuracy: 71.44%
 2025-04-20 11:22:41,202 - INFO - Making live prediction...
 2025-04-20 11:22:41,473 - INFO - [2025-04-20 10:22:41] Prediction: DOWN | Confidence: 0.50
+2025-04-20 12:22:22,100 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-20 12:23:50,522 - INFO - Fetched 100 rows of data for BTCUSDT at interval 4h
+2025-04-20 12:24:01,328 - INFO - Fetched 100 rows of data for BTCUSDT at interval 1d
+2025-04-20 12:24:19,158 - INFO - Fetched 100 rows of data for ETHUSDT at interval 1d
