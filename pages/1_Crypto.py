@@ -22,6 +22,8 @@ if 'predictions' not in st.session_state:
     st.session_state.predictions = None
 if 'prediction_df' not in st.session_state:
     st.session_state.prediction_df = None
+if 'show_indicator_guide' not in st.session_state:
+    st.session_state.show_indicator_guide = False
 
 def main():
     # Setup logging
@@ -45,6 +47,7 @@ def main():
             default=['SMA', 'Bollinger Bands']
         )
         
+        # Allow the user to select the cryptocurrency
         crypto = st.selectbox(
             "Select Cryptocurrency", 
             ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'], 
@@ -55,49 +58,42 @@ def main():
         
         confidence_threshold = st.slider("Confidence Threshold", 0.5, 1.0, 0.7)
         
-        if st.button("Run Prediction"):
-            st.session_state.run_model = True
-            st.session_state.predictions = None
-            st.session_state.prediction_df = None
+        # Add an info button next to the "Run Random forest prediction" button
+        col1, col2 = st.sidebar.columns([3, 1])
+
+        with col1:
+            if st.button("Run Random forest prediction"):
+                st.session_state.run_model = True
+                st.session_state.predictions = None
+                st.session_state.prediction_df = None
+
+        with col2:
+            st.markdown(
+                """
+                <a href="/RFinfo" target="_blank">
+                    <button style="background-color: #f0f0f0; color: black; border: none; padding: 5px 10px; cursor: pointer;">
+                        ℹ️ Info
+                    </button>
+                </a>
+                """,
+                unsafe_allow_html=True
+            )
         # Button to toggle the indicator guide
-    if st.sidebar.button("📘 What do these indicators mean?"):
+        if st.sidebar.button("📘 What do these indicators mean?"):
+            st.session_state.show_indicator_guide = not st.session_state.show_indicator_guide
 
-        st.sidebar.markdown("Technical Indicator Guide")
+        if st.session_state.show_indicator_guide:
+            st.sidebar.markdown("### Technical Indicator Guide")
 
-        st.sidebar.markdown("SMA")
-        st.sidebar.markdown("is the avarge price, showing trend direction.")
-
-        st.sidebar.markdown("EMA")
-        st.sidebar.markdown("Similar to SMA but gives more weight to recent prices.")
-
-        st.sidebar.markdown("RSI")
-        st.sidebar.markdown("Shows if something is overbought or oversold (0–100)." \
-        "Generally, values above 70 are considered overbought," \
-        " while values below 30 are considered oversold. ")
-
-        st.sidebar.markdown("MACD")
-        st.sidebar.markdown("Measures momentum using two moving averages. " \
-        "which can help identify potential buy/sell signals. " )
-
-        st.sidebar.markdown("Bollinger Bands")
-        st.sidebar.markdown("Tracks volatility using bands around the price." \
-        "The bands widen when volatility increases and narrow when it decreases.")
-
-        st.sidebar.markdown("ARIMA")
-        st.sidebar.markdown("Uses past data to forecast future prices.")
-
-        st.sidebar.markdown("OBV")
-        st.sidebar.markdown("Measures buying/selling pressure using volume." \
-        " A rising OBV indicates buying pressure, while a falling OBV indicates selling pressure.")
-
-        st.sidebar.markdown("ATR")
-        st.sidebar.markdown("Measures how much the price moves on average." \
-        " A higher ATR indicates more volatility, while a lower ATR indicates less.")
-
-        st.sidebar.markdown("Hurst Exponent")
-        st.sidebar.markdown("Tells if price movements are random or trending." \
-        " A value of 0.5 indicates a more 'random' movement, while values above 0.5 " \
-        "indicate a clearer trend.")
+            st.sidebar.markdown("**SMA**: The average price, showing trend direction.")
+            st.sidebar.markdown("**EMA**: Similar to SMA but gives more weight to recent prices.")
+            st.sidebar.markdown("**RSI**: Shows if something is overbought or oversold (0–100). Values above 70 are overbought, below 30 are oversold.")
+            st.sidebar.markdown("**MACD**: Measures momentum using two moving averages, helping identify potential buy/sell signals.")
+            st.sidebar.markdown("**Bollinger Bands**: Tracks volatility using bands around the price. Bands widen with increased volatility.")
+            st.sidebar.markdown("**ARIMA**: Uses past data to forecast future prices.")
+            st.sidebar.markdown("**OBV**: Measures buying/selling pressure using volume. Rising OBV indicates buying pressure, falling indicates selling.")
+            st.sidebar.markdown("**ATR**: Measures average price movement. Higher ATR indicates more volatility.")
+            st.sidebar.markdown("**Hurst Exponent**: Indicates if price movements are random or trending. Values above 0.5 indicate a clearer trend.")
 
     # Fetch data
     @st.cache_data(ttl=300)  # Cache for 5 minutes
@@ -264,7 +260,7 @@ def main():
             try:
                 if st.session_state.predictions is None:
                     # Generate single prediction
-                    pred, conf = make_prediction(df, interval=interval)  # Pass the selected interval
+                    pred, conf = make_prediction(df, interval=interval, symbol=crypto)  # Pass the selected symbol
                     last_price = df['close'].iloc[-1]
                     
                     # Create single prediction point

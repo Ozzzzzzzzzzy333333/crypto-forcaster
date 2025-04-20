@@ -27,11 +27,11 @@ warnings.filterwarnings("ignore")
 class LiveCryptoPredictor:
     def __init__(self, symbol='BTC/USDT', timeframe='5m'):
         self.exchange = ccxt.binance()
-        self.symbol = symbol
-        self.timeframe = timeframe  # Use the dynamic timeframe
+        self.symbol = symbol  # Use the dynamic symbol
+        self.timeframe = timeframe
         self.train_days = 7
         self.gap_minutes = 10
-        self.prediction_horizon = self._get_prediction_horizon(timeframe)  # Adjust horizon based on interval
+        self.prediction_horizon = self._get_prediction_horizon(timeframe)
         self.confidence_threshold = 0.5
         self.model = RandomForestClassifier()
         self.live_predictions = {}
@@ -210,11 +210,11 @@ class LiveCryptoPredictor:
         except KeyboardInterrupt:
             logger.info("Live mode interrupted.")
 
-def make_prediction(df, interval='5m'):
+def make_prediction(df, interval='5m', symbol='BTC/USDT'):
     """
     Wrapper function to make a single prediction using the LiveCryptoPredictor class.
     """
-    predictor = LiveCryptoPredictor(timeframe=interval)  # Pass the interval
+    predictor = LiveCryptoPredictor(symbol=symbol, timeframe=interval)  # Pass the symbol and interval
     predictor.train_model()  # Train the model before making predictions
     prediction, confidence = predictor.make_prediction()
     if prediction is not None:

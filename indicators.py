@@ -10,7 +10,7 @@ def calculate_ema(df, span=20):
     df['ema'] = df['close'].ewm(span=span, adjust=False).mean()
     return df
 
-# MACD ]
+# MACD 
 def calculate_macd(df, fast=12, slow=26, signal=9):
     df['ema_fast'] = df['close'].ewm(span=fast, adjust=False).mean()
     df['ema_slow'] = df['close'].ewm(span=slow, adjust=False).mean()
