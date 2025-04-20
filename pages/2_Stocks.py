@@ -18,6 +18,7 @@ from indicators import (
 st.set_page_config(page_title="Stock Predictor", layout="wide")
 st.title("Stock Report")
 st.header("A simple and easy-to-use prediction app")
+st.header("Note: The Crypto option is recomeneded, this is due to API limits and the current stage of development")
 
 # sidebar
 st.sidebar.header("Technical Indicators")
