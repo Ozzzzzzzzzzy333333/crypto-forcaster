@@ -1,0 +1,12 @@
+ccxt
+numpy
+pandas
+scikit-learn
+ta
+streamlit
+plotly
+yfinance
+statsmodels
+matplotlib
+requests
+tensorflow

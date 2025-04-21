@@ -7,11 +7,13 @@ import time
 from plotly.subplots import make_subplots
 import logging
 from datetime import datetime, timedelta
+import numpy as np
 from indicators import (
     calculate_sma, calculate_bollinger_bands, calculate_rsi,
     calculate_ema, calculate_macd, calculate_obv, calculate_atr
 )
 from predictor import make_prediction
+from lstm import LivePredictionSystem, initial_training
 
 # Initialize session state
 if 'run_model' not in st.session_state:
@@ -24,6 +26,10 @@ if 'prediction_df' not in st.session_state:
     st.session_state.prediction_df = None
 if 'show_indicator_guide' not in st.session_state:
     st.session_state.show_indicator_guide = False
+if 'model_type' not in st.session_state:
+    st.session_state.model_type = None
+if 'last_prediction_time' not in st.session_state:
+    st.session_state.last_prediction_time = None
 
 def main():
     # Setup logging
@@ -78,7 +84,7 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-        # Add an info button next to the "Run Random forest prediction" button
+        # Replace the existing LSTM button code with this
         col1, col2 = st.sidebar.columns([3, 1])
 
         with col1:
@@ -86,6 +92,7 @@ def main():
                 st.session_state.run_model = True
                 st.session_state.predictions = None
                 st.session_state.prediction_df = None
+                st.session_state.model_type = "lstm"  # Add this to track which model is being used
 
         with col2:
             st.markdown(
@@ -98,6 +105,11 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
+        # Add a button to trigger LSTM predictions
+        if st.sidebar.button("Trigger LSTM Prediction"):
+            st.session_state.run_model = True
+            st.session_state.model_type = "lstm"
+
         # Button to toggle the indicator guide
         if st.sidebar.button("📘 What do these indicators mean?"):
             st.session_state.show_indicator_guide = not st.session_state.show_indicator_guide
@@ -132,7 +144,7 @@ def main():
         numeric_cols = ['open', 'high', 'low', 'close', 'volume']
         df[numeric_cols] = df[numeric_cols].astype(float)
         
-        logger.info(f"Fetched {len(df)} rows of data for {symbol} at interval {interval}")
+        logging.info(f"Fetched {len(df)} rows of data for {symbol} at interval {interval}")
         return df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
 
     binance_symbol = crypto.replace('/', '')
@@ -153,6 +165,38 @@ def main():
         df = calculate_obv(df)
     if 'ATR' in indicators_selected:
         df = calculate_atr(df)
+
+    # Add technical indicators required by the LSTM system
+    df = calculate_sma(df)
+    df = calculate_ema(df)
+    df = calculate_bollinger_bands(df)
+    df = calculate_rsi(df)
+    df = calculate_macd(df)
+    df = calculate_obv(df)
+    df = calculate_atr(df)
+
+    # Add additional features required by the LSTM system
+    df['prev_close'] = df['close'].shift(1)
+    df['log_return'] = np.log(df['prev_close'] / df['close'].shift(2))
+    df['price_change'] = df['close'].diff()
+    for window in [5, 15, 30]:
+        df[f'close_ma_{window}'] = df['close'].rolling(window).mean()
+        df[f'volatility_{window}'] = df['close'].rolling(window).std()
+    df['volume_ma_15'] = df['volume'].rolling(15).mean()
+    df['volume_change'] = df['volume'].diff()
+    df['obv'] = (np.sign(df['close'].diff()) * df['volume']).fillna(0).cumsum()
+
+    # Add missing features
+    df['buy_ratio'] = df['volume'] / (df['volume'].rolling(15).sum())
+    df['bollinger_upper'] = df['close'] + (2 * df['close'].rolling(20).std())
+    df['bollinger_lower'] = df['close'] - (2 * df['close'].rolling(20).std())
+    df['stoch_k'] = ((df['close'] - df['low'].rolling(14).min()) /
+                     (df['high'].rolling(14).max() - df['low'].rolling(14).min())) * 100
+    df['stoch_d'] = df['stoch_k'].rolling(3).mean()
+    df['williams_r'] = ((df['high'].rolling(14).max() - df['close']) /
+                        (df['high'].rolling(14).max() - df['low'].rolling(14).min())) * -100
+
+    df = df.dropna()
 
     # Determine subplot layout based on selected indicators
     indicator_rows = sum(1 for ind in indicators_selected if ind in ['RSI', 'MACD', 'OBV', 'ATR'])
@@ -278,9 +322,94 @@ def main():
     if st.session_state.run_model:
         with st.spinner("Generating prediction..."):
             try:
-                if st.session_state.predictions is None:
-                    # Generate single prediction
-                    pred, conf = make_prediction(df, interval=interval, symbol=crypto)  # Pass the selected symbol
+                if st.session_state.run_model and st.session_state.model_type == "lstm":
+                    # Train the LSTM model if not already trained
+                    if 'lstm_system' not in st.session_state:
+                        models, scaler_features, scaler_target, features, seq_length, pred_length = initial_training(
+                            symbol=crypto.replace('/', ''), interval=interval
+                        )
+                        st.session_state.lstm_system = LivePredictionSystem(
+                            models, scaler_features, scaler_target, features, seq_length, pred_length,
+                            symbol=crypto.replace('/', ''), interval=interval
+                        )
+                    
+                    # Use the LSTM system to generate predictions
+                    lstm_system = st.session_state.lstm_system
+                    
+                    # Check if it's time to generate a new prediction
+                    current_time = datetime.now()
+                    if st.session_state.last_prediction_time is None or (current_time - st.session_state.last_prediction_time).total_seconds() >= 300:
+                        logging.info("Generating a new LSTM prediction...")
+                        
+                        # Fetch the latest data
+                        df = fetch_data(crypto.replace('/', ''), interval)
+                        logging.info(f"Fetched {len(df)} rows of data for {crypto} at interval {interval}")
+                        
+                        # Add required features
+                        df = calculate_sma(df)
+                        df = calculate_ema(df)
+                        df = calculate_bollinger_bands(df)
+                        df = calculate_rsi(df)
+                        df = calculate_macd(df)
+                        df = calculate_obv(df)
+                        df = calculate_atr(df)
+                        df['prev_close'] = df['close'].shift(1)
+                        df['log_return'] = np.log(df['prev_close'] / df['close'].shift(2))
+                        df['price_change'] = df['close'].diff()
+                        for window in [5, 15, 30]:
+                            df[f'close_ma_{window}'] = df['close'].rolling(window).mean()
+                            df[f'volatility_{window}'] = df['close'].rolling(window).std()
+                        df['volume_ma_15'] = df['volume'].rolling(15).mean()
+                        df['volume_change'] = df['volume'].diff()
+                        df['obv'] = (np.sign(df['close'].diff()) * df['volume']).fillna(0).cumsum()
+                        df['buy_ratio'] = df['volume'] / (df['volume'].rolling(15).sum())
+                        df['bollinger_upper'] = df['close'] + (2 * df['close'].rolling(20).std())
+                        df['bollinger_lower'] = df['close'] - (2 * df['close'].rolling(20).std())
+                        df['stoch_k'] = ((df['close'] - df['low'].rolling(14).min()) /
+                                         (df['high'].rolling(14).max() - df['low'].rolling(14).min())) * 100
+                        df['stoch_d'] = df['stoch_k'].rolling(3).mean()
+                        df['williams_r'] = ((df['high'].rolling(14).max() - df['close']) /
+                                            (df['high'].rolling(14).max() - df['low'].rolling(14).min())) * -100
+                        df = df.dropna()
+                        
+                        # Ensure all required features are present
+                        last_sequence = df[lstm_system.features].values[-lstm_system.seq_length:]
+                        logging.info(f"Last sequence shape: {last_sequence.shape}")
+                        scaled_sequence = lstm_system.scaler_features.transform(last_sequence)
+                        scaled_sequence = scaled_sequence.reshape(1, lstm_system.seq_length, -1)
+                        logging.info(f"Scaled sequence shape: {scaled_sequence.shape}")
+                        
+                        # Generate predictions
+                        avg_prediction, avg_classification = lstm_system.predict(scaled_sequence)
+                        logging.info(f"Generated predictions: avg_prediction={avg_prediction}, avg_classification={avg_classification}")
+                        
+                        last_price = df['close'].iloc[-1]
+                        
+                        # Calculate the predicted price based on the predicted price change
+                        predicted_price = last_price + avg_prediction
+                        
+                        # Map freq for timestamp calculation
+                        freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', 
+                                    '1h': '1H', '4h': '4H', '1d': '1D'}
+                        freq = freq_map[interval]
+                        future_time = df['timestamp'].iloc[-1] + pd.Timedelta(freq)
+                        
+                        # Store the prediction in session state
+                        st.session_state.predictions = avg_classification
+                        st.session_state.prediction_df = pd.DataFrame({
+                            'timestamp': [future_time],
+                            'predicted_price': [predicted_price],
+                            'confidence': [avg_classification]
+                        })
+                        
+                        # Update the last prediction time
+                        st.session_state.last_prediction_time = current_time
+                        st.success("LSTM prediction generated successfully!")
+                    else:
+                        st.warning("It's not time for a new prediction yet. Please wait for the 5-minute interval.")
+                else:
+                    # Original RF prediction code
+                    pred, conf = make_prediction(df, interval=interval, symbol=crypto)
                     last_price = df['close'].iloc[-1]
                     
                     # Create single prediction point
@@ -317,19 +446,34 @@ def main():
                     ), row=1, col=1)
                     
                     # Add confidence annotation
+                    model_type = getattr(st.session_state, 'model_type', 'rf')
                     if pred_df['confidence'].iloc[0] is not None:
-                        fig.add_annotation(
-                            x=pred_df['timestamp'].iloc[0],
-                            y=pred_df['predicted_price'].iloc[0],
-                            text=f"Prediction: {'UP' if st.session_state.predictions == 1 else 'DOWN'}<br>Confidence: {pred_df['confidence'].iloc[0]:.0%}",
-                            showarrow=True,
-                            arrowhead=2,
-                            ax=0,
-                            ay=-40,
-                            font=dict(color="gold", size=12)
-                        )
+                        if model_type == "lstm":
+                            # LSTM-specific annotation
+                            fig.add_annotation(
+                                x=pred_df['timestamp'].iloc[0],
+                                y=pred_df['predicted_price'].iloc[0],
+                                text=f"LSTM Prediction: {'UP' if st.session_state.predictions > 0.5 else 'DOWN'}<br>Confidence: {pred_df['confidence'].iloc[0]:.0%}",
+                                showarrow=True,
+                                arrowhead=2,
+                                ax=0,
+                                ay=-40,
+                                font=dict(color="gold", size=12)
+                            )
+                        else:
+                            # RF-specific annotation
+                            fig.add_annotation(
+                                x=pred_df['timestamp'].iloc[0],
+                                y=pred_df['predicted_price'].iloc[0],
+                                text=f"RF Prediction: {'UP' if st.session_state.predictions == 1 else 'DOWN'}<br>Confidence: {pred_df['confidence'].iloc[0]:.0%}",
+                                showarrow=True,
+                                arrowhead=2,
+                                ax=0,
+                                ay=-40,
+                                font=dict(color="gold", size=12)
+                            )
                 
-                st.success("Prediction generated successfully!")
+                st.success(f"{model_type.upper()} prediction generated successfully!")
                 
             except Exception as e:
                 st.error(f"Prediction error: {str(e)}")

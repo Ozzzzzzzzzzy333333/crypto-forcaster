@@ -810,3 +810,55 @@ tornado.websocket.WebSocketClosedError
 2025-04-21 12:28:05,444 - INFO - [2025-04-21 11:28:05] Prediction: DOWN | Confidence: 0.61
 2025-04-21 12:51:13,279 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
 2025-04-21 13:07:14,885 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 17:38:25,044 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 17:38:47,267 - INFO - Training model using data from 2025-04-14 16:28:47.267505 to 2025-04-21 16:28:47.267505
+2025-04-21 17:38:55,944 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 10, 'min_samples_split': 10, 'n_estimators': 100}
+2025-04-21 17:38:56,740 - INFO - Training completed - Accuracy: 95.07%
+2025-04-21 17:38:56,740 - INFO - Making live prediction...
+2025-04-21 17:38:57,017 - INFO - [2025-04-21 16:38:57] Prediction: DOWN | Confidence: 0.88
+2025-04-21 18:24:05,560 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 18:24:21,207 - INFO - Training model using data from 2025-04-14 17:14:21.207695 to 2025-04-21 17:14:21.207695
+2025-04-21 18:24:30,090 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 10, 'min_samples_split': 20, 'n_estimators': 100}
+2025-04-21 18:24:31,229 - INFO - Training completed - Accuracy: 91.29%
+2025-04-21 18:24:31,230 - INFO - Making live prediction...
+2025-04-21 18:24:31,522 - INFO - [2025-04-21 17:24:31] Prediction: DOWN | Confidence: 0.60
+2025-04-21 18:50:01,479 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 18:50:07,212 - INFO - Training model using data from 2025-04-14 17:40:07.212024 to 2025-04-21 17:40:07.212024
+2025-04-21 18:50:16,162 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 10, 'min_samples_split': 10, 'n_estimators': 50}
+2025-04-21 18:50:16,438 - INFO - Training completed - Accuracy: 94.38%
+2025-04-21 18:50:16,439 - INFO - Making live prediction...
+2025-04-21 18:50:16,722 - INFO - [2025-04-21 17:50:16] Prediction: DOWN | Confidence: 0.63
+2025-04-21 18:53:05,908 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 19:01:09,209 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 19:18:26,790 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 19:29:06,041 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 19:42:06,535 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 19:50:24,649 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:08:44,839 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:13:46,730 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:18:51,914 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:25:08,853 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:27:26,770 - INFO - Fetched 100 rows of data for BTC/USDT at interval 5m
+2025-04-21 20:27:26,790 - INFO - Last sequence shape: (60, 21)
+2025-04-21 20:27:26,791 - INFO - Scaled sequence shape: (1, 60, 21)
+2025-04-21 20:27:27,130 - INFO - Generated predictions: avg_prediction=0.42840224504470825, avg_classification=0.49996328353881836
+2025-04-21 20:32:15,464 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:37:17,733 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:43:01,321 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:45:05,524 - INFO - Generating a new LSTM prediction...
+2025-04-21 20:45:05,525 - INFO - Fetched 100 rows of data for BTC/USDT at interval 5m
+2025-04-21 20:45:05,545 - INFO - Last sequence shape: (60, 21)
+2025-04-21 20:45:05,546 - INFO - Scaled sequence shape: (1, 60, 21)
+2025-04-21 20:45:05,862 - INFO - Generated predictions: avg_prediction=0.17255069315433502, avg_classification=0.5277606844902039
+2025-04-21 20:50:52,578 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:50:52,649 - INFO - Generating a new LSTM prediction...
+2025-04-21 20:50:52,650 - INFO - Fetched 100 rows of data for BTC/USDT at interval 5m
+2025-04-21 20:50:52,672 - INFO - Last sequence shape: (60, 21)
+2025-04-21 20:50:52,673 - INFO - Scaled sequence shape: (1, 60, 21)
+2025-04-21 20:50:54,389 - INFO - Generated predictions: avg_prediction=0.12971161305904388, avg_classification=0.5322514772415161
+2025-04-21 20:57:03,530 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 20:57:03,605 - INFO - Generating a new LSTM prediction...
+2025-04-21 20:57:03,606 - INFO - Fetched 100 rows of data for BTC/USDT at interval 5m
+2025-04-21 20:57:03,630 - INFO - Last sequence shape: (60, 21)
+2025-04-21 20:57:03,632 - INFO - Scaled sequence shape: (1, 60, 21)
+2025-04-21 20:57:05,224 - INFO - Generated predictions: avg_prediction=0.1332414597272873, avg_classification=0.5203410387039185
