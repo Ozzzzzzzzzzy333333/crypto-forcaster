@@ -786,3 +786,27 @@ tornado.websocket.WebSocketClosedError
 2025-04-20 17:52:10,147 - INFO - Training completed - Accuracy: 100.00%
 2025-04-20 17:52:10,147 - INFO - Making live prediction...
 2025-04-20 17:52:10,407 - INFO - [2025-04-20 16:52:10] Prediction: DOWN | Confidence: 0.60
+2025-04-20 17:59:01,276 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-20 18:01:01,840 - INFO - Training model using data from 2025-04-13 16:51:01.840878 to 2025-04-20 16:51:01.840878
+2025-04-20 18:01:10,531 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 5, 'min_samples_split': 10, 'n_estimators': 100}
+2025-04-20 18:01:11,150 - INFO - Training completed - Accuracy: 71.94%
+2025-04-20 18:01:11,150 - INFO - Making live prediction...
+2025-04-20 18:01:11,464 - INFO - [2025-04-20 17:01:11] Prediction: DOWN | Confidence: 0.61
+2025-04-20 18:05:46,918 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-20 21:50:41,700 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-20 21:56:19,010 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 12:25:51,532 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 12:26:31,863 - INFO - Fetched 100 rows of data for BTCUSDT at interval 4h
+2025-04-21 12:27:03,081 - INFO - Fetched 100 rows of data for BTCUSDT at interval 1h
+2025-04-21 12:27:16,016 - INFO - Training model using data from 2025-04-14 11:17:16.016033 to 2025-04-21 11:17:16.016033
+2025-04-21 12:27:27,135 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 5, 'min_samples_split': 10, 'n_estimators': 100}
+2025-04-21 12:27:28,544 - INFO - Training completed - Accuracy: 74.33%
+2025-04-21 12:27:28,545 - INFO - Making live prediction...
+2025-04-21 12:27:28,861 - INFO - [2025-04-21 11:27:28] Prediction: UP | Confidence: 0.52
+2025-04-21 12:27:52,555 - INFO - Training model using data from 2025-04-14 11:17:52.555356 to 2025-04-21 11:17:52.555356
+2025-04-21 12:28:03,015 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 10, 'min_samples_split': 20, 'n_estimators': 100}
+2025-04-21 12:28:05,148 - INFO - Training completed - Accuracy: 92.04%
+2025-04-21 12:28:05,149 - INFO - Making live prediction...
+2025-04-21 12:28:05,444 - INFO - [2025-04-21 11:28:05] Prediction: DOWN | Confidence: 0.61
+2025-04-21 12:51:13,279 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
+2025-04-21 13:07:14,885 - INFO - Fetched 100 rows of data for BTCUSDT at interval 5m
