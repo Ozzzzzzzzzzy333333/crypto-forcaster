@@ -1,7 +1,8 @@
+import json
 import streamlit as st
 
 # Page Config
-st.set_page_config(page_title="RF info", layout="centered")
+st.set_page_config(page_title="LSTM Info", layout="centered")
 
 # Custom CSS for styling
 st.markdown("""
@@ -19,6 +20,18 @@ st.markdown("""
     
     </style>
 """, unsafe_allow_html=True)
+
+# Function to read the LSTM log file
+def read_lstm_log():
+    try:
+        with open('lstm_log.json', 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # Return a default structure if the file is missing or invalid
+        return {"lstm_trained": False}
+
+# Read the LSTM log
+lstm_log = read_lstm_log()
 
 # Title
 st.markdown('<h1 class="centered-text">LSTM Predictor</h1>', unsafe_allow_html=True)
@@ -43,3 +56,34 @@ complex patterns or wider timeframes.
 
 </h3>
 """, unsafe_allow_html=True)
+if not lstm_log.get("lstm_trained", False):
+    st.markdown('<h3 class="centered-text">Sorry, the model hasn\'t been generated and run yet.</h3>', unsafe_allow_html=True)
+else:
+    # Display technical details
+    st.markdown('<h1 class="centered-text">Technical Details</h1>', unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <h3 class="centered-text">
+    <b>Training Details:</b><br>
+    Accuracy: {lstm_log['accuracy']:.2f}%<br>
+    Training Points: {lstm_log['training_points']}<br>
+    Features Used: {', '.join(lstm_log['features'])}<br>
+    Cryptocurrency: {lstm_log['crypto']}<br>
+    Time Interval: {lstm_log['interval']}<br>
+    Current Price: {lstm_log['current_price']}<br>
+    </h3>
+    """, unsafe_allow_html=True)
+    
+    # Display predictions
+    st.markdown('<h1 class="centered-text">Predictions</h1>', unsafe_allow_html=True)
+    for pred in lstm_log.get("predictions", []):
+        st.markdown(f"""
+        <h3 class="centered-text">
+        Prediction Start Time: {pred['prediction_start_time']}<br>
+        Prediction End Time: {pred['prediction_end_time']}<br>
+        Movement: {pred['movement']}<br>
+        Current Price: {pred['current_price']}<br>
+        Predicted Price: {pred['predicted_price']}<br>
+        Confidence: {pred['confidence']:.2f}<br>
+        </h3>
+        """, unsafe_allow_html=True)

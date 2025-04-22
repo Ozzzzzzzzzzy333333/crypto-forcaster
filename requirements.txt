@@ -10,3 +10,4 @@ statsmodels
 matplotlib
 requests
 tensorflow
+json

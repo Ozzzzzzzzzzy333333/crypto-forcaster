@@ -221,3 +221,21 @@ def make_prediction(df, interval='5m', symbol='BTC/USDT'):
         return prediction, confidence
     else:
         return None, None
+
+def get_rf_training_details():
+    # Example details (replace with actual logic to fetch training details)
+    return {
+        'accuracy': 92.5,
+        'training_points': 10000,
+        'features': ['Open', 'High', 'Low', 'Close', 'Volume']
+    }
+
+def get_rf_predictions():
+    # Example predictions (replace with actual logic to fetch predictions)
+    predictions = [
+        {'date': '2025-04-21', 'time': '14:30', 'movement': 'UP', 'price': 45000},
+        {'date': '2025-04-21', 'time': '14:35', 'movement': 'DOWN', 'price': 44800},
+        {'date': '2025-04-21', 'time': '14:40', 'movement': 'UP', 'price': 45200},
+    ]
+    print(f"RF Predictions: {predictions}")  # Debugging: Log predictions
+    return predictions

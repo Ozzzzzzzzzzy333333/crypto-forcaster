@@ -1,0 +1,1 @@
+{"rf_trained": true, "accuracy": 94.18, "training_points": 10000, "features": ["Open", "High", "Low", "Close", "Volume"], "crypto": "BTC/USDT", "interval": "5m", "current_price": 90291.4, "predictions": [{"prediction_start_time": "2025-04-22T13:50:00", "prediction_end_time": "2025-04-22T13:55:00", "movement": "DOWN", "predicted_price": 90246.2543, "current_price": 90291.4}]}

@@ -598,12 +598,8 @@ def run_parallel_systems(symbol, interval, run_duration_hours, lookback_period):
 
         # Ensure input to scaler has feature names
         last_sequence = live_data[features].values[-seq_length:]
-        last_sequence_df = pd.DataFrame(last_sequence, columns=features)  # Add feature names
-        scaled_sequence = scaler_features.transform(last_sequence_df)
+        scaled_sequence = scaler_features.transform(last_sequence)
         scaled_sequence = scaled_sequence.reshape(1, seq_length, -1)
-
-        # Log the shape of the scaled sequence for debugging
-        print(f"Scaled sequence shape: {scaled_sequence.shape}")
 
         print(f"[{datetime.now()}] Generating predictions...")
         avg_prediction, avg_classification = lp_system.predict(scaled_sequence)
