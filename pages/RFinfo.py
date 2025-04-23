@@ -1,11 +1,9 @@
+# imports
 import json
 import streamlit as st
-from predictor import get_rf_training_details, get_rf_predictions  # Import functions to fetch RF details
-
-# Page Config
 st.set_page_config(page_title="RF Info", layout="centered")
 
-# Custom CSS for styling
+# CSS
 st.markdown("""
     <style>
     .label {
@@ -21,7 +19,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to read the RF log file
+# read rf log
 def read_rf_log():
     try:
         with open('rf_log.json', 'r') as f:
@@ -29,10 +27,9 @@ def read_rf_log():
     except FileNotFoundError:
         return {"rf_trained": False}
 
-# Read the RF log
+#read the RF log
 rf_log = read_rf_log()
 
-# Title
 st.markdown('<h1 class="centered-text">Random Forest Predictor</h1>', unsafe_allow_html=True)
 st.markdown("""
 <h3 class="centered-text">
@@ -51,22 +48,19 @@ combined to make the final answer. This helps avoid bad guesses by any one tree.
 if not rf_log.get("rf_trained", False):
     st.markdown('<h3 class="centered-text">Sorry, the model hasn\'t been generated and run yet.</h3>', unsafe_allow_html=True)
 else:
-    # Display technical details
+    # technical details
     st.markdown('<h1 class="centered-text">Technical Details</h1>', unsafe_allow_html=True)
     
     st.markdown(f"""
     <h3 class="centered-text">
     <b>Training Details:</b><br>
-    Accuracy: {rf_log['accuracy']:.2f}%<br>
-    Training Points: {rf_log['training_points']}<br>
-    Features Used: {', '.join(rf_log['features'])}<br>
     Cryptocurrency: {rf_log['crypto']}<br>
     Time Interval: {rf_log['interval']}<br>
     Current Price: {rf_log['current_price']}<br>
     </h3>
     """, unsafe_allow_html=True)
     
-    # Display predictions
+    # predictions
     st.markdown('<h1 class="centered-text">Predictions</h1>', unsafe_allow_html=True)
     for pred in rf_log.get("predictions", []):
         st.markdown(f"""

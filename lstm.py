@@ -1,3 +1,4 @@
+# imports
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,43 +15,27 @@ from tensorflow.keras.regularizers import l2
 from sklearn.model_selection import TimeSeriesSplit
 import types  # For method type binding
 import os
+import logging
 
 # Suppress TensorFlow warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow INFO and WARNING messages
 
-# ======================
-# 1. Data Fetching - Updated with better type handling
-# ======================
-def fetch_binance_data(symbol='BTCUSDT', interval='5m', limit=2000):
-    """Fetch historical data from Binance API."""
-    url = f'https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}'
-    data = requests.get(url).json()
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # Create DataFrame with all columns as strings initially
-    df = pd.DataFrame(data, columns=[
-        'timestamp', 'open', 'high', 'low', 'close', 'volume',
-        'close_time', 'quote_asset_volume', 'trades',
-        'taker_buy_base', 'taker_buy_quote', 'ignore'
-    ])
+def fetch_data(symbol='BTCUSDT', interval='5m', limit=2000, is_live=False):
+    """
+    Fetch historical or live data from Binance API with comprehensive error handling.
     
-    # Convert timestamp
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-    
-    # Convert numeric columns - handle potential non-numeric values
-    numeric_cols = ['open', 'high', 'low', 'close', 'volume', 
-                   'quote_asset_volume', 'trades',
-                   'taker_buy_base', 'taker_buy_quote']
-    
-    for col in numeric_cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce')  # Convert to numeric, invalid as NaN
+    Args:
+        symbol (str): Trading pair symbol (e.g., 'BTCUSDT')
+        interval (str): Candlestick interval (e.g., '5m', '1h')
+        limit (int): Maximum number of records to retrieve
+        is_live (bool): If True, uses more extensive error handling for live trading
         
-    # Drop any rows with NaN values in key columns
-    df = df.dropna(subset=['close', 'volume', 'taker_buy_base'])
-    
-    return df
-
-def fetch_live_data(symbol='BTCUSDT', interval='5m', limit=2000):
-    """Match historic data format exactly with error handling"""
+    Returns:
+        pd.DataFrame: Processed data frame with proper types
+    """
     try:
         url = f'https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}'
         data = requests.get(url).json()
@@ -79,70 +64,36 @@ def fetch_live_data(symbol='BTCUSDT', interval='5m', limit=2000):
         return df
     
     except Exception as e:
-        print(f"Error fetching live data: {e}")
-        return pd.DataFrame()  # Return empty DataFrame on error
-
-# ======================
-# 2. Enhanced Feature Engineering with safer calculations
-# ======================
-# Add momentum and trend strength indicators
-def add_technical_indicators(df):
-    """Identical to historic version's indicators"""
-    df = df.copy()
+        error_msg = f"Error fetching {'live' if is_live else 'historical'} data: {e}"
+        if is_live:
+            print(error_msg)
+            return pd.DataFrame()  # Return empty DataFrame on error for live mode
+        else:
+            raise Exception(error_msg)  # Raise exception for historical mode
+        
+def add_technical_indicators(df, is_live=False):
+    """
+    Add technical indicators to price data with error handling.
     
-    # Price features
-    df['prev_close'] = df['close'].shift(1)
-    df['log_return'] = np.log(df['prev_close'] / df['close'].shift(2))
-    df['price_change'] = df['close'].diff()
-    
-    # Moving averages (same windows)
-    for window in [5, 15, 30]:
-        df[f'close_ma_{window}'] = df['close'].rolling(window).mean()
-        df[f'volatility_{window}'] = df['close'].rolling(window).std()
-    
-    # Volume features
-    df['volume_ma_15'] = df['volume'].rolling(15).mean()
-    df['volume_change'] = df['volume'].diff()
-    df['obv'] = (np.sign(df['close'].diff()) * df['volume']).fillna(0).cumsum()
-    
-    # Oscillators (same parameters)
-    df['rsi'] = compute_rsi(df['close'], 14)
-    df['macd'], df['macd_signal'] = compute_macd(df['close'])
-    df['bollinger_upper'] = df['close_ma_15'] + (2 * df['volatility_15'])
-    df['bollinger_lower'] = df['close_ma_15'] - (2 * df['volatility_15'])
-    
-    # Stochastic Oscillator
-    df['stoch_k'] = ((df['close'] - df['low'].rolling(window=14).min()) /
-                    (df['high'].rolling(window=14).max() - df['low'].rolling(window=14).min())) * 100
-    df['stoch_d'] = df['stoch_k'].rolling(window=3).mean()
-    
-    # Williams %R
-    df['williams_r'] = ((df['high'].rolling(window=14).max() - df['close']) /
-                       (df['high'].rolling(window=14).max() - df['low'].rolling(window=14).min())) * -100
-    
-    # ADX (from historic version)
-    df['adx'] = compute_adx(df['high'], df['low'], df['close'], 14)
-    
-    # Buy ratio (ensure no division by zero)
-    df['buy_ratio'] = df['taker_buy_base'] / df['volume']
-    df['buy_ratio'] = df['buy_ratio'].replace([np.inf, -np.inf], np.nan).fillna(0)
-    
-    return df.dropna()
-
-def add_live_technical_indicators(df):
-    """Identical to historic version's indicators with safety checks"""
+    Args:
+        df (pd.DataFrame): Price data
+        is_live (bool): If True, uses more extensive error handling for live trading
+        
+    Returns:
+        pd.DataFrame: DataFrame with technical indicators added
+    """
     if df.empty:
         return df
         
-    df = df.copy()
-    
     try:
+        df = df.copy()
+        
         # Price features
         df['prev_close'] = df['close'].shift(1)
         df['log_return'] = np.log(df['prev_close'] / df['close'].shift(2))
         df['price_change'] = df['close'].diff()
         
-        # Moving averages (same windows)
+        # Moving averages
         for window in [5, 15, 30]:
             df[f'close_ma_{window}'] = df['close'].rolling(window).mean()
             df[f'volatility_{window}'] = df['close'].rolling(window).std()
@@ -152,26 +103,37 @@ def add_live_technical_indicators(df):
         df['volume_change'] = df['volume'].diff()
         df['obv'] = (np.sign(df['close'].diff()) * df['volume']).fillna(0).cumsum()
         
-        # Oscillators (same parameters)
+        # Oscillators
         df['rsi'] = compute_rsi(df['close'], 14)
         df['macd'], df['macd_signal'] = compute_macd(df['close'])
-        df['stoch_k'] = 100 * (df['close'] - df['low'].rolling(14).min()) / \
-                       (df['high'].rolling(14).max() - df['low'].rolling(14).min())
-        df['stoch_d'] = df['stoch_k'].rolling(3).mean()
-        
-        # Additional features from historic
-        df['buy_ratio'] = df['taker_buy_base'] / df['volume']
         df['bollinger_upper'] = df['close_ma_15'] + (2 * df['volatility_15'])
         df['bollinger_lower'] = df['close_ma_15'] - (2 * df['volatility_15'])
-        df['williams_r'] = -100 * (df['high'].rolling(14).max() - df['close']) / \
-                          (df['high'].rolling(14).max() - df['low'].rolling(14).min())
+        
+        # Stochastic Oscillator
+        df['stoch_k'] = ((df['close'] - df['low'].rolling(window=14).min()) /
+                        (df['high'].rolling(window=14).max() - df['low'].rolling(window=14).min())) * 100
+        df['stoch_d'] = df['stoch_k'].rolling(window=3).mean()
+        
+        # Williams %R
+        df['williams_r'] = ((df['high'].rolling(window=14).max() - df['close']) /
+                           (df['high'].rolling(window=14).max() - df['low'].rolling(window=14).min())) * -100
+        
+        # ADX
+        df['adx'] = compute_adx(df['high'], df['low'], df['close'], 14)
+        
+        # Buy ratio (ensure no division by zero)
+        df['buy_ratio'] = df['taker_buy_base'] / df['volume']
+        df['buy_ratio'] = df['buy_ratio'].replace([np.inf, -np.inf], np.nan).fillna(0)
         
         return df.dropna()
-    
+        
     except Exception as e:
-        print(f"Error calculating indicators: {e}")
-        return df  # Return whatever we have
-
+        if is_live:
+            print(f"Error calculating indicators: {e}")
+            return df  # Return whatever we have for live mode
+        else:
+            raise Exception(f"Error calculating indicators: {e}")  # Raise for historical
+        
 def compute_rsi(series, window):
     delta = series.diff()
     gain = delta.where(delta > 0, 0)
@@ -208,36 +170,7 @@ def compute_adx(high, low, close, window):
     adx = dx.rolling(window).mean()
     return adx
 
-# ======================
-# 3. Sequence Creation
-# ======================
-def create_live_sequences(features, targets, seq_length, pred_length):
-    """Match historic sequence generation exactly with bounds checking"""
-    X, y_reg, y_class = [], [], []
-    
-    if len(features) < seq_length + pred_length:
-        print(f"Warning: Not enough data. Need {seq_length + pred_length}, have {len(features)}")
-        return np.array([]), np.array([]), np.array([])
-    
-    for i in range(seq_length, len(features) - pred_length):
-        X.append(features[i-seq_length:i])
-        y_reg.append(targets[i + pred_length - 1])  # Same regression target
-        # Same classification logic
-        y_class.append(1 if targets[i + pred_length - 1] > targets[i + pred_length - 2] else 0)
-    
-    return np.array(X), np.array(y_reg), np.array(y_class)
-
-def create_live_sequences(features, targets, seq_length, pred_length):
-    """Match historic sequence generation exactly"""
-    X, y_reg, y_class = [], [], []
-    for i in range(seq_length, len(features) - pred_length):
-        X.append(features[i-seq_length:i])
-        y_reg.append(targets[i + pred_length - 1])  # Same regression target
-        # Same classification logic
-        y_class.append(1 if targets[i + pred_length - 1] > targets[i + pred_length - 2] else 0)
-    return np.array(X), np.array(y_reg), np.array(y_class)
-
-def create_sequences_with_direction(features, targets, seq_length, pred_length):
+def create_sequences(features, targets, seq_length, pred_length, is_live=False):
     """
     Create sequences for regression and classification tasks.
     
@@ -246,6 +179,7 @@ def create_sequences_with_direction(features, targets, seq_length, pred_length):
         targets: Scaled target data (numpy array).
         seq_length: Number of time steps in each input sequence.
         pred_length: Number of time steps ahead to predict.
+        is_live: If True, uses more strict bounds checking for live trading.
     
     Returns:
         X: Input sequences (numpy array).
@@ -253,6 +187,11 @@ def create_sequences_with_direction(features, targets, seq_length, pred_length):
         y_class: Classification targets (numpy array).
     """
     X, y_reg, y_class = [], [], []
+    
+    # Check if we have enough data
+    if is_live and len(features) < seq_length + pred_length:
+        print(f"Warning: Not enough data. Need {seq_length + pred_length}, have {len(features)}")
+        return np.array([]), np.array([]), np.array([])
     
     for i in range(seq_length, len(features) - pred_length):
         X.append(features[i-seq_length:i])
@@ -262,119 +201,6 @@ def create_sequences_with_direction(features, targets, seq_length, pred_length):
     
     return np.array(X), np.array(y_reg), np.array(y_class)
 
-# ======================
-# 4. Signal Generation
-# ======================
-def generate_live_signal(prediction, classification, current_price, current_time, strategy):
-    """Match historic trading rules with enhanced risk management"""
-    # Same trend confirmation logic
-    if classification > 0.6 and strategy.position <= 0:  # Strong buy
-        if strategy.position == -1:  # Close short first
-            close_position(current_price, current_time, strategy, "SWITCH")
-        enter_position(1, current_price, current_time, strategy)
-    
-    elif classification < 0.4 and strategy.position >= 0:  # Strong sell
-        if strategy.position == 1:  # Close long first
-            close_position(current_price, current_time, strategy, "SWITCH")
-        enter_position(-1, current_price, current_time, strategy)
-    
-    # Same TP/SL logic but with position tracking
-    elif strategy.position != 0:
-        pl_pct = (current_price - strategy.entry_price) / strategy.entry_price * strategy.position
-        if pl_pct >= 0.015:  # 1.5% TP
-            close_position(current_price, current_time, strategy, "TP")
-        elif pl_pct <= -0.01:  # 1% SL
-            close_position(current_price, current_time, strategy, "SL")
-
-def enter_position(direction, price, timestamp, strategy):
-    """Enhanced position entry matching historic risk parameters"""
-    # Calculate position size (10% of current balance)
-    position_value = strategy.current_balance * 0.10
-    position_size = position_value / price
-    
-    strategy.position = direction
-    strategy.entry_price = price
-    strategy.entry_time = timestamp
-    strategy.position_size = position_size
-    
-    print(f"{timestamp} - ENTER {'LONG' if direction == 1 else 'SHORT'} at ${price:.2f}")
-    print(f"Position size: {position_size:.6f} BTC, Value: ${position_value:.2f}")
-
-def close_position(price, timestamp, strategy, reason):
-    """Enhanced position closing with tracking"""
-    if strategy.position == 0:
-        return
-        
-    # Calculate profit/loss
-    pl = strategy.position_size * (price - strategy.entry_price) * strategy.position
-    pl_pct = (price - strategy.entry_price) / strategy.entry_price * strategy.position * 100
-    
-    # Update balance
-    strategy.current_balance += pl
-    
-    # Record trade
-    trade = {
-        'entry_time': strategy.entry_time,
-        'entry_price': strategy.entry_price,
-        'exit_time': timestamp,
-        'exit_price': price,
-        'position': 'long' if strategy.position == 1 else 'short',
-        'size': strategy.position_size,
-        'profit_loss': pl,
-        'return_pct': pl_pct,
-        'reason': reason
-    }
-    strategy.trades.append(trade)
-    
-    print(f"{timestamp} - CLOSE {'LONG' if strategy.position == 1 else 'SHORT'} at ${price:.2f}")
-    print(f"Profit/Loss: ${pl:.2f} ({pl_pct:.2f}%)")
-    print(f"New Balance: ${strategy.current_balance:.2f}")
-    
-    # Reset position
-    strategy.position = 0
-    strategy.entry_price = None
-    strategy.entry_time = None
-    strategy.position_size = None
-
-# ======================
-# 5. Metrics Calculation
-# ======================
-def calculate_live_metrics(strategy):
-    """Match historic performance metrics exactly"""
-    metrics = {
-        'final_balance': strategy.current_balance,
-        'total_return_pct': (strategy.current_balance - strategy.initial_balance) / strategy.initial_balance * 100,
-        'total_trades': len(strategy.trades),
-        'winning_trades': sum(1 for t in strategy.trades if t['profit_loss'] > 0),
-        'losing_trades': sum(1 for t in strategy.trades if t['profit_loss'] <= 0),
-    }
-    
-    # Same additional metrics as historic
-    metrics['win_rate'] = (metrics['winning_trades'] / metrics['total_trades'] * 100 
-                          if metrics['total_trades'] > 0 else 0)
-    
-    winning_amount = sum(t['profit_loss'] for t in strategy.trades if t['profit_loss'] > 0)
-    losing_amount = abs(sum(t['profit_loss'] for t in strategy.trades if t['profit_loss'] <= 0))
-    
-    metrics['profit_factor'] = winning_amount / losing_amount if losing_amount > 0 else float('inf')
-    
-    # Calculate max drawdown
-    equity_curve = [strategy.initial_balance]
-    for trade in strategy.trades:
-        equity_curve.append(equity_curve[-1] + trade['profit_loss'])
-    
-    peak = equity_curve[0]
-    max_drawdown = 0
-    for value in equity_curve:
-        if value > peak:
-            peak = value
-        drawdown = (peak - value) / peak
-        if drawdown > max_drawdown:
-            max_drawdown = drawdown
-    
-    metrics['max_drawdown_pct'] = max_drawdown * 100
-    
-    return metrics
 
 # Model Architecture
 def build_model(input_shape):
@@ -435,7 +261,7 @@ def initial_training(symbol='BTCUSDT', interval='5m'):
     print(f"Starting initial model training for {symbol} with {interval} interval...")
     
     # Fetch historical data
-    btc_data = fetch_binance_data(symbol=symbol, interval=interval)
+    btc_data = fetch_data(symbol=symbol, interval=interval)
     btc_data = add_technical_indicators(btc_data)
     
     features = ['prev_close', 'log_return', 'price_change', 
@@ -457,7 +283,7 @@ def initial_training(symbol='BTCUSDT', interval='5m'):
     pred_length = 1  # Number of time steps ahead to predict
     
     # Create sequences
-    X, y_reg, y_class = create_sequences_with_direction(scaled_features, scaled_target, seq_length, pred_length)
+    X, y_reg, y_class = create_sequences(scaled_features, scaled_target, seq_length, pred_length)
     
     # Time-series cross-validation
     tscv = TimeSeriesSplit(n_splits=5)
@@ -520,7 +346,7 @@ def initial_training(symbol='BTCUSDT', interval='5m'):
 
 class LivePredictionSystem:
     """
-    System that uses LSTM predictions to generate outputs like direction and probability.
+    System that uses LSTM predictions to generate outputs like direction, probability, and turning points.
     """
     def __init__(self, models, scaler_features, scaler_target, features, seq_length, pred_length, 
                  symbol='BTCUSDT', interval='5m'):
@@ -538,20 +364,56 @@ class LivePredictionSystem:
         
         print(f"LSTM-based Prediction System initialized for {symbol} with {interval} interval")
     
-    def _predict(self, model, sequence):
-        """Internal method to make predictions with a single model."""
-        return model.predict(sequence)
-
-    def predict(self, sequence):
+    def predict(self, sequence, live_data):
+        """
+        Predict the price change, direction, and turning points.
+        
+        Args:
+            sequence: Input sequence for prediction.
+            live_data: DataFrame containing the live data for turning point detection.
+        
+        Returns:
+            avg_prediction: Average predicted price change.
+            avg_classification: Average probability of upward movement.
+            turning_points: List of detected turning points.
+        """
         print(f"Predicting with input sequence shape: {sequence.shape}")
-        predictions = [model.predict(sequence, verbose=0) for model in self.models]
-        print(f"Raw predictions: {predictions}")
-        avg_prediction = np.mean([pred[0][0] for pred in predictions])  # Average regression output
-        avg_classification = np.mean([pred[1][0] for pred in predictions])  # Average classification output
+        
+        # Make predictions with all models
+        predictions = []
+        for model in self.models:
+            pred = model.predict(sequence, verbose=0)
+            predictions.append(pred)
+        
+        # Extract regression and classification outputs
+        regression_outputs = [pred[0][0][0] for pred in predictions]  # First array, first value
+        classification_outputs = [pred[1][0][0] for pred in predictions]  # Second array, first value
+        
+        avg_prediction = np.mean(regression_outputs)  # Average regression output
+        avg_classification = np.mean(classification_outputs)  # Average classification output
+        
+        # Detect turning points in the live data
+        turning_points = find_turning_points(live_data['close'])
+        
         print(f"Averaged prediction: {avg_prediction}, classification: {avg_classification}")
-        return avg_prediction, avg_classification
-
-def run_parallel_systems(symbol, interval, run_duration_hours, lookback_period):
+        print(f"Detected turning points: {turning_points}")
+        return avg_prediction, avg_classification, turning_points
+    
+def get_interval_seconds(interval):
+    """Convert interval string to seconds."""
+    unit = interval[-1]
+    value = int(interval[:-1])
+    
+    if unit == 'm':
+        return value * 60
+    elif unit == 'h':
+        return value * 60 * 60
+    elif unit == 'd':
+        return value * 24 * 60 * 60
+    else:
+        return 300  # Default to 5 minutes
+    
+def run_parallel_systems(symbol, interval, run_duration_hours):
     """
     Run the prediction system for the specified symbol and interval.
 
@@ -559,12 +421,11 @@ def run_parallel_systems(symbol, interval, run_duration_hours, lookback_period):
         symbol (str): Trading symbol (e.g., 'BTCUSDT').
         interval (str): Time interval for predictions (e.g., '5m').
         run_duration_hours (int): Duration to run the system in hours.
-        lookback_period (int): Lookback period for analysis.
     """
     print(f"Running prediction system for {symbol} with {interval} interval for {run_duration_hours} hours.")
 
     # Fetch initial data
-    data = fetch_binance_data(symbol=symbol, interval=interval, limit=2000)
+    data = fetch_data(symbol=symbol, interval=interval, limit=2000)
     if data.empty:
         print("No data fetched. Exiting.")
         return
@@ -581,20 +442,23 @@ def run_parallel_systems(symbol, interval, run_duration_hours, lookback_period):
         symbol=symbol, interval=interval
     )
 
+    # Determine sleep time based on interval
+    sleep_seconds = get_interval_seconds(interval)
+
     # Simulate live predictions
     start_time = datetime.now()
     end_time = start_time + timedelta(hours=run_duration_hours)
 
     while datetime.now() < end_time:
         print(f"\n[{datetime.now()}] Fetching live data...")
-        live_data = fetch_live_data(symbol=symbol, interval=interval, limit=2000)
+        live_data = fetch_data(symbol=symbol, interval=interval, limit=2000, is_live=True)
         if live_data.empty:
             print(f"[{datetime.now()}] No live data fetched. Retrying in 60 seconds...")
             time.sleep(60)  # Wait for 1 minute before retrying
             continue
 
         print(f"[{datetime.now()}] Adding technical indicators to live data...")
-        live_data = add_live_technical_indicators(live_data)
+        live_data = add_technical_indicators(live_data, is_live=True)
 
         # Ensure input to scaler has feature names
         last_sequence = live_data[features].values[-seq_length:]
@@ -602,18 +466,19 @@ def run_parallel_systems(symbol, interval, run_duration_hours, lookback_period):
         scaled_sequence = scaled_sequence.reshape(1, seq_length, -1)
 
         print(f"[{datetime.now()}] Generating predictions...")
-        avg_prediction, avg_classification = lp_system.predict(scaled_sequence)
+        avg_prediction, avg_classification, turning_points = lp_system.predict(scaled_sequence, live_data)
 
         # Output predictions
         current_price = live_data['close'].iloc[-1]
         print(f"Current price: {current_price}")
         print(f"Predicted price change: {avg_prediction}")
         print(f"Direction probability: {avg_classification}")
+        print(f"Turning points: {turning_points}")
 
         # Wait for the next interval
-        time.sleep(300)  # Wait for 5 minutes
+        time.sleep(sleep_seconds)
 
 
 if __name__ == "__main__":
     # Run the prediction system for BTC/USDT with 5-minute intervals for 24 hours
-    run_parallel_systems(symbol='BTCUSDT', interval='5m', run_duration_hours=24, lookback_period=5)
+    run_parallel_systems(symbol='BTCUSDT', interval='5m', run_duration_hours=24)

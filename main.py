@@ -1,9 +1,9 @@
+# imports
 import streamlit as st
 
-# Page Config
 st.set_page_config(page_title="Market Selector", layout="centered")
 
-# Custom CSS for styling
+# CSS
 st.markdown("""
     <style>
     .container {
@@ -58,11 +58,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Title
 st.markdown('<h1 class="centered-text">Market Prediction App</h1>', unsafe_allow_html=True)
 st.markdown('<h2 class="centered-text">Choose your market to begin</h2>', unsafe_allow_html=True)
 
-# Buttons (styled as links)
+# buttons for Crypto, Stocks, and Forex
 st.markdown("""
 <div class="container">
     <a href="/Crypto" class="circle-button crypto">₿</a>

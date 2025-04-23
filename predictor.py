@@ -1,3 +1,4 @@
+# imports
 import ccxt
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ warnings.filterwarnings("ignore")
 class LiveCryptoPredictor:
     def __init__(self, symbol='BTC/USDT', timeframe='5m'):
         self.exchange = ccxt.binance()
-        self.symbol = symbol  # Use the dynamic symbol
+        self.symbol = symbol  
         self.timeframe = timeframe
         self.train_days = 7
         self.gap_minutes = 10
@@ -42,7 +43,7 @@ class LiveCryptoPredictor:
         Map the timeframe to a prediction horizon in minutes.
         """
         mapping = {'5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240, '1d': 1440}
-        return mapping.get(timeframe, 5)  # Default to 5 minutes if not found
+        return mapping.get(timeframe, 5) 
 
     def fetch_data(self, start_dt, end_dt):
         since = int(start_dt.timestamp() * 1000)
@@ -65,8 +66,6 @@ class LiveCryptoPredictor:
 
     def prepare_features(self, df):
         df = df.copy()
-
-        # Add more features
         df['returns'] = df['close'].pct_change().shift(1)
         df['sma_20'] = SMAIndicator(df['close'], window=20).sma_indicator().shift(1)
         df['rsi_14'] = RSIIndicator(df['close'], window=14).rsi().shift(1)
@@ -75,13 +74,10 @@ class LiveCryptoPredictor:
         df['volatility_ratio'] = df['volatility'] / df['volatility'].rolling(100).mean()
         df['volatility_ratio'] = df['volatility_ratio'].fillna(0)
 
-        # Add lagged features
         for lag in range(1, 6):
             df[f'returns_lag{lag}'] = df['returns'].shift(lag)
 
-        # Define the target variable
         df['target'] = (df['close'].shift(-self.prediction_horizon) > df['close']).astype(int)
-
         df = df.dropna()
         return df
 
@@ -90,7 +86,7 @@ class LiveCryptoPredictor:
             'n_estimators': [50, 100],
             'max_depth': [5, 10],
             'min_samples_split': [10, 20],
-            'class_weight': ['balanced']  # Handle class imbalance
+            'class_weight': ['balanced'] 
         }
         grid_search = GridSearchCV(
             RandomForestClassifier(),
@@ -222,20 +218,3 @@ def make_prediction(df, interval='5m', symbol='BTC/USDT'):
     else:
         return None, None
 
-def get_rf_training_details():
-    # Example details (replace with actual logic to fetch training details)
-    return {
-        'accuracy': 92.5,
-        'training_points': 10000,
-        'features': ['Open', 'High', 'Low', 'Close', 'Volume']
-    }
-
-def get_rf_predictions():
-    # Example predictions (replace with actual logic to fetch predictions)
-    predictions = [
-        {'date': '2025-04-21', 'time': '14:30', 'movement': 'UP', 'price': 45000},
-        {'date': '2025-04-21', 'time': '14:35', 'movement': 'DOWN', 'price': 44800},
-        {'date': '2025-04-21', 'time': '14:40', 'movement': 'UP', 'price': 45200},
-    ]
-    print(f"RF Predictions: {predictions}")  # Debugging: Log predictions
-    return predictions
