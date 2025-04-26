@@ -39,9 +39,7 @@ class LiveCryptoPredictor:
         self.current_price = None
 
     def _get_prediction_horizon(self, timeframe):
-        """
-        Map the timeframe to a prediction horizon in minutes.
-        """
+
         mapping = {'5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240, '1d': 1440}
         return mapping.get(timeframe, 5) 
 
@@ -185,19 +183,17 @@ class LiveCryptoPredictor:
         for attempt in range(3):
             if self.train_model():
                 break
-            logger.warning("Model training failed, retrying...")
+            logger.warning("Model training failed")
             time.sleep(60)
         else:
-            logger.error("Failed to train model after 3 attempts.")
+            logger.error("Failed to train 3 times")
             return
 
         try:
             while True:
-                logger.info("----- New Cycle -----")
+                logger.info("cycle")
                 self.make_prediction()
                 self.verify_predictions()
-
-                # Wait until next aligned interval
                 now = datetime.utcnow()
                 next_tick = now + timedelta(minutes=self.prediction_horizon)
                 next_tick = next_tick.replace(minute=(next_tick.minute // 5) * 5, second=0, microsecond=0)
@@ -207,11 +203,8 @@ class LiveCryptoPredictor:
             logger.info("Live mode interrupted.")
 
 def make_prediction(df, interval='5m', symbol='BTC/USDT'):
-    """
-    Wrapper function to make a single prediction using the LiveCryptoPredictor class.
-    """
-    predictor = LiveCryptoPredictor(symbol=symbol, timeframe=interval)  # Pass the symbol and interval
-    predictor.train_model()  # Train the model before making predictions
+    predictor = LiveCryptoPredictor(symbol=symbol, timeframe=interval) 
+    predictor.train_model()  
     prediction, confidence = predictor.make_prediction()
     if prediction is not None:
         return prediction, confidence

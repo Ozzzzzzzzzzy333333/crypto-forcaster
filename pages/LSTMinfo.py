@@ -63,8 +63,6 @@ else:
     st.markdown(f"""
     <h3 class="centered-text">
     <b>Training Details:</b><br>
-    Accuracy: {lstm_log['accuracy']:.2f}%<br>
-    Training Points: {lstm_log['training_points']}<br>
     Features Used: {', '.join(lstm_log['features'])}<br>
     Cryptocurrency: {lstm_log['crypto']}<br>
     Time Interval: {lstm_log['interval']}<br>

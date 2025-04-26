@@ -18,7 +18,7 @@ from predictor import make_prediction
 from lstm import LivePredictionSystem, initial_training
 import json
 
-# Initialize session state
+# session state 
 if 'run_model' not in st.session_state:
     st.session_state.run_model = False
 if 'last_update' not in st.session_state:
@@ -37,33 +37,33 @@ if 'rf_trained' not in st.session_state:
     st.session_state.rf_trained = False
 if 'lstm_system' not in st.session_state:
     st.session_state.lstm_system = None
-
+if 'prediction_history' not in st.session_state:
+    st.session_state.prediction_history = []
 
 @st.cache_data
 def set_rf_trained_state(state):
     return state
 
-# Set the state
 st.session_state.rf_trained = set_rf_trained_state(True)
 
-# Function to update the RF log file
+# update the RF log file
 def update_rf_log(data):
     with open('rf_log.json', 'w') as f:
         json.dump(data, f)
 
-# Function to update the LSTM log file
+# update the LSTM log file
 def update_lstm_log(data):
     try:
-        # Convert NumPy data types to native Python types
+        # NumPy to Python types
         def convert_numpy(obj):
             if isinstance(obj, np.ndarray):
-                return obj.tolist()  # Convert NumPy arrays to lists
+                return obj.tolist() 
             elif isinstance(obj, (np.float32, np.float64)):
-                return float(obj)  # Convert NumPy floats to Python floats
+                return float(obj)  
             elif isinstance(obj, (np.int32, np.int64)):
-                return int(obj)  # Convert NumPy integers to Python integers
+                return int(obj)  
             elif isinstance(obj, np.bool_):
-                return bool(obj)  # Convert NumPy booleans to Python booleans
+                return bool(obj)  
             raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
         with open('lstm_log.json', 'w') as f:
@@ -73,7 +73,7 @@ def update_lstm_log(data):
 
 def find_turning_points(series):
     """Enhanced turning point detection with confirmation."""
-    if len(series) < 5:  # Check if series has enough data points
+    if len(series) < 5:  # turning piont daata
         return []
     
     turning_points = []
@@ -89,15 +89,12 @@ def find_turning_points(series):
     return turning_points
 
 def main():
-    # Setup logging
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-
-    # Page setup
     st.title("Crypto Report")
     st.header("A simple and easy to use prediction app")
 
-    # Sidebar controls
+    # sidebar 
     with st.sidebar:
         st.header("Chart Settings")
         chart_type = st.radio("Chart Type", ["Candlestick", "Line"], index=0)
@@ -109,34 +106,26 @@ def main():
             default=['SMA', 'Bollinger Bands']
         )
         
-        # Allow the user to select the cryptocurrency
+        # the user can select the cryptocurrency
         crypto = st.selectbox(
             "Select Cryptocurrency", 
             ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'], 
             index=0
         )
-        
+        #time selection
         interval = st.selectbox("Select Time Interval", ['5m', '15m', '30m', '1h', '4h', '1d'])
-        
-        confidence_threshold = st.slider("Confidence Threshold", 0.5, 1.0, 0.7)
-        
-        # Add an info button next to the "Run Random Forest Prediction" button
+                
+        #buttons for lstm and rf
         col1, col2 = st.sidebar.columns([3, 1])
-
         with col1:
             if st.button("Run Random Forest Prediction"):
                 st.session_state.run_model = True
                 st.session_state.predictions = None
                 st.session_state.prediction_df = None
-                st.session_state.model_type = "rf"  # Set model type to "rf"
-                
-                # Display a warning message
+                st.session_state.model_type = "rf"  
                 st.warning("This will take several minutes to generate. Please be patient.")
-                
-                # Display an additional message if the interval is 5m
                 if interval == "5m":
                     st.info("It may create a delay of a few minutes in the data. An interval greater than 5 minutes is therefore recommended.")
-
         with col2:
             st.markdown(
                 """
@@ -148,24 +137,17 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-        
-        # Add an info button next to the "Run LSTM Prediction" button
-        col1, col2 = st.sidebar.columns([3, 1])
 
+        col1, col2 = st.sidebar.columns([3, 1])
         with col1:
             if st.button("Run LSTM Prediction"):
                 st.session_state.run_model = True
                 st.session_state.predictions = None
                 st.session_state.prediction_df = None
-                st.session_state.model_type = "lstm"  # Set model type to "lstm"
-                
-                # Display a warning message
+                st.session_state.model_type = "lstm"  
                 st.warning("This will take up to 5 minutes to generate. Please be patient.")
-                
-                # Display an additional message if the interval is 5m
                 if interval == "5m":
                     st.info("It may create a delay of a few minutes in the data. An interval greater than 5 minutes is therefore recommended.")
-
         with col2:
             st.markdown(
                 """
@@ -177,7 +159,6 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-        # In the sidebar section, modify the trigger button code:
         if st.sidebar.button("Trigger LSTM Prediction"):
             if st.session_state.lstm_system is None:
                 st.warning("No pre-trained LSTM model found. Please run 'Run LSTM Prediction' first.")
@@ -186,13 +167,12 @@ def main():
                 st.session_state.model_type = "lstm"
                 st.session_state.predictions = None
                 st.session_state.prediction_df = None
-        # Button to toggle the indicator guide
-        if st.sidebar.button("📘 What do these indicators mean?"):
-            st.session_state.show_indicator_guide = not st.session_state.show_indicator_guide
 
+        # button for indicator guide
+        if st.sidebar.button("What do these indicators mean?"):
+            st.session_state.show_indicator_guide = not st.session_state.show_indicator_guide
         if st.session_state.show_indicator_guide:
             st.sidebar.markdown("### Technical Indicator Guide")
-
             st.sidebar.markdown("**SMA**: The average price, showing trend direction.")
             st.sidebar.markdown("**EMA**: Similar to SMA but gives more weight to recent prices.")
             st.sidebar.markdown("**RSI**: Shows if something is overbought or oversold (0–100). Values above 70 are overbought, below 30 are oversold.")
@@ -203,20 +183,17 @@ def main():
             st.sidebar.markdown("**ATR**: Measures average price movement. Higher ATR indicates more volatility.")
             st.sidebar.markdown("**Hurst Exponent**: Indicates if price movements are random or trending. Values above 0.5 indicate a clearer trend.")
 
-    # Fetch data
-    @st.cache_data(ttl=300)  # Cache for 5 minutes
-    def fetch_data(symbol, interval, limit=200):  # Increase from 100 to 200 or more
+    # fetch data
+    @st.cache_data(ttl=300)  
+    def fetch_data(symbol, interval, limit=200):  
         url = f'https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}'
-        # rest of the function remains the same
         response = requests.get(url)
         data = response.json()
-
         df = pd.DataFrame(data, columns=[
             'timestamp', 'open', 'high', 'low', 'close', 'volume',
             'close_time', 'quote_asset_volume', 'trades',
             'taker_buy_base', 'taker_buy_quote', 'ignore'
         ])
-
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         numeric_cols = ['open', 'high', 'low', 'close', 'volume']
         df[numeric_cols] = df[numeric_cols].astype(float)
@@ -228,10 +205,10 @@ def main():
     df = fetch_data(binance_symbol, interval)
 
     if df.empty or 'close' not in df.columns:
-        st.error("Live data is empty or missing required columns. Unable to generate predictions.")
+        st.error("Live data is empty")
         return
 
-    # Calculate indicators
+    #indicators 
     if 'SMA' in indicators_selected:
         df = calculate_sma(df)
     if 'EMA' in indicators_selected:
@@ -246,8 +223,6 @@ def main():
         df = calculate_obv(df)
     if 'ATR' in indicators_selected:
         df = calculate_atr(df)
-
-    # Add technical indicators required by the LSTM system
     df = calculate_sma(df)
     df = calculate_ema(df)
     df = calculate_bollinger_bands(df)
@@ -255,10 +230,8 @@ def main():
     df = calculate_macd(df)
     df = calculate_obv(df)
     df = calculate_atr(df)
-
-    # Add additional features required by the LSTM system
     df['prev_close'] = df['close'].shift(1)
-    df['log_return'] = np.log(df['close'] / df['close'].shift(1))  # Fixed log return calculation
+    df['log_return'] = np.log(df['close'] / df['close'].shift(1))  
     df['price_change'] = df['close'].diff()
     for window in [5, 15, 30]:
         df[f'close_ma_{window}'] = df['close'].rolling(window).mean()
@@ -266,8 +239,6 @@ def main():
     df['volume_ma_15'] = df['volume'].rolling(15).mean()
     df['volume_change'] = df['volume'].diff()
     df['obv'] = (np.sign(df['close'].diff()) * df['volume']).fillna(0).cumsum()
-
-    # Add missing features
     df['buy_ratio'] = df['volume'] / (df['volume'].rolling(15).sum())
     df['bollinger_upper'] = df['close'] + (2 * df['close'].rolling(20).std())
     df['bollinger_lower'] = df['close'] - (2 * df['close'].rolling(20).std())
@@ -279,12 +250,10 @@ def main():
 
     df = df.dropna()
 
-    # Determine subplot layout based on selected indicators
     indicator_rows = sum(1 for ind in indicators_selected if ind in ['RSI', 'MACD', 'OBV', 'ATR'])
-    row_count = 2 + indicator_rows  # 1 for price, 1 for volume, plus indicators
+    row_count = 2 + indicator_rows  
     row_heights = [0.5, 0.2] + [0.3/indicator_rows]*indicator_rows if indicator_rows > 0 else [0.7, 0.3]
     
-    # Create subplot titles
     subplot_titles = ["Price Chart", "Volume"]
     if 'RSI' in indicators_selected:
         subplot_titles.append("RSI")
@@ -295,7 +264,7 @@ def main():
     if 'ATR' in indicators_selected:
         subplot_titles.append("ATR")
 
-    # Create the figure with dynamic rows
+    # plot
     fig = make_subplots(
         rows=row_count, cols=1,
         shared_xaxes=True,
@@ -304,7 +273,7 @@ def main():
         subplot_titles=subplot_titles
     )
 
-    # Add price chart based on selected type
+    # chart
     if chart_type == "Line":
         fig.add_trace(go.Scatter(
             x=df['timestamp'], y=df['close'],
@@ -321,7 +290,7 @@ def main():
             decreasing=dict(line=dict(color='red'))
         ), row=1, col=1)
 
-    # Add volume
+    # volume chart
     fig.add_trace(go.Bar(
         x=df['timestamp'],
         y=df['volume'],
@@ -329,7 +298,7 @@ def main():
         marker_color='rgba(100, 100, 255, 0.6)'
     ), row=2, col=1)
 
-    # Add overlays to main chart
+    # main chart indicators
     if 'SMA' in indicators_selected:
         fig.add_trace(go.Scatter(
             x=df['timestamp'], y=df['sma'],
@@ -356,10 +325,9 @@ def main():
             line=dict(color='purple', width=1, dash='dot')
         ), row=1, col=1)
 
-    # Track current row for indicators (starting after price and volume)
     current_row = 3
 
-    # Add indicators with their own subplots
+    # indicators with their own chart
     if 'RSI' in indicators_selected:
         fig.add_trace(go.Scatter(
             x=df['timestamp'], y=df['rsi'],
@@ -399,27 +367,27 @@ def main():
         ), row=current_row, col=1)
         current_row += 1
 
-    # Then modify the LSTM prediction logic section
+    # LSTM prediction
     if st.session_state.run_model:
         with st.spinner("Generating prediction..."):
             try:
                 if st.session_state.model_type == "lstm":
-                    # Use existing LSTM system if available
+                    # check if pre trained LSTM
                     if st.session_state.lstm_system is not None:
                         lstm_system = st.session_state.lstm_system
                         seq_length = lstm_system.seq_length
                         st.info("Using pre-trained LSTM model for prediction.")
                     else:
-                        # Initialize LSTM system if not already done
                         st.warning("Initializing LSTM model (this may take a few minutes)...")
                         try:
-                            models, scaler_features, scaler_target, features, seq_length, pred_length = initial_training(
+                            models, scaler_features, scaler_target, features, seq_length, pred_length, overall_acc, up_acc, down_acc = initial_training(
                                 symbol=binance_symbol, interval=interval
                             )
                             st.session_state.lstm_system = LivePredictionSystem(
                                 models, scaler_features, scaler_target, features, 
                                 seq_length, pred_length,
-                                symbol=binance_symbol, interval=interval
+                                symbol=binance_symbol, interval=interval,
+                                overall_accuracy=overall_acc, up_accuracy=up_acc, down_accuracy=down_acc
                             )
                             lstm_system = st.session_state.lstm_system
                             st.success("LSTM model initialized successfully!")
@@ -428,74 +396,49 @@ def main():
                             st.error(traceback.format_exc())
                             st.session_state.run_model = False
                             return
-                    
-                    # Prepare data for prediction
                     try:
-                        # Ensure we have all required features
                         required_features = lstm_system.features
-                        
-                        # Check if all features are present
                         missing_features = [f for f in required_features if f not in df.columns]
                         if missing_features:
                             st.warning(f"Adding missing features: {missing_features}")
-                            
-                        # Add or update missing features
+
                         df['buy_ratio'] = df['volume'] / (df['volume'].rolling(15).sum().fillna(df['volume']))
                         df['bollinger_upper'] = df['close'] + (2 * df['close'].rolling(20).std())
                         df['bollinger_lower'] = df['close'] - (2 * df['close'].rolling(20).std())
-                        
-                        # Handle division by zero in these calculations
                         df['stoch_k'] = df.apply(
                             lambda x: 100 * (x['close'] - df['low'].rolling(14).min().loc[x.name]) / 
                                     max(0.0001, df['high'].rolling(14).max().loc[x.name] - df['low'].rolling(14).min().loc[x.name]),
                             axis=1
                         )
                         df['stoch_d'] = df['stoch_k'].rolling(3).mean()
-                        
                         df['williams_r'] = df.apply(
                             lambda x: -100 * (df['high'].rolling(14).max().loc[x.name] - x['close']) / 
                                     max(0.0001, df['high'].rolling(14).max().loc[x.name] - df['low'].rolling(14).min().loc[x.name]),
                             axis=1
                         )
-                        
-                        # Drop NaN values after feature creation
                         df = df.dropna()
-                        
-                        # Check if we have enough data after dropping NaN values
                         if len(df) < seq_length:
                             st.error(f"Not enough data for prediction after preprocessing. Need {seq_length} points, have {len(df)}")
                             st.session_state.run_model = False
                             return
-                        
-                        # Get the most recent sequence
+
                         last_sequence = df[required_features].values[-seq_length:]
-                        
-                        # Scale and reshape
                         scaled_sequence = lstm_system.scaler_features.transform(last_sequence)
                         scaled_sequence = scaled_sequence.reshape(1, seq_length, -1)
                         
-                        # Make prediction
                         try:
-                            # Use all models for prediction
                             predictions = []
                             for model in lstm_system.models:
                                 pred = model.predict(scaled_sequence, verbose=0)
                                 predictions.append(pred)
-                            
-                            # Extract regression and classification outputs
+
                             regression_outputs = [pred[0][0][0] for pred in predictions]
                             classification_outputs = [pred[1][0][0] for pred in predictions]
-                            
                             avg_prediction = np.mean(regression_outputs)
                             avg_classification = np.mean(classification_outputs)
-                            
-                            # Get the last price from the data
                             last_price = df['close'].iloc[-1]
-                            
-                            # Use the predictions to determine future price
                             predicted_price = last_price * (1 + (0.0015 if avg_classification > 0.5 else -0.0015))
                             
-                            # Store prediction
                             freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', 
                                     '1h': '1H', '4h': '4H', '1d': '1D'}
                             future_time = df['timestamp'].iloc[-1] + pd.Timedelta(freq_map[interval])
@@ -510,8 +453,6 @@ def main():
                             # Update LSTM log
                             lstm_log_data = {
                                 "lstm_trained": True,
-                                "accuracy": 92.5,  # Replace with actual accuracy
-                                "training_points": 15000,  # Replace with actual training points
                                 "features": required_features,
                                 "crypto": crypto,
                                 "interval": interval,
@@ -523,14 +464,62 @@ def main():
                                         "movement": "UP" if avg_classification > 0.5 else "DOWN",
                                         "predicted_price": float(predicted_price),
                                         "current_price": float(last_price),
-                                        "confidence": float(max(0.1, abs(avg_classification - 0.5) * 2))
+                                        "confidence": float(max(0.1, abs(avg_classification - 0.5) * 2)),
+                                        "training_overall_accuracy": float(lstm_system.overall_accuracy),
+                                        "training_up_accuracy": float(lstm_system.up_accuracy),
+                                        "training_down_accuracy": float(lstm_system.down_accuracy)
                                     }
                                 ]
                             }
-                            update_lstm_log(lstm_log_data)
-                            
+                            update_lstm_log(lstm_log_data)                           
                             st.success("LSTM prediction generated successfully!")
+                            st.markdown("### LSTM Model Training Accuracy")
                             
+                            # message for overall accuracy
+                            accuracy_percentage = lstm_system.overall_accuracy * 100
+                            if accuracy_percentage >= 60:
+                                st.success(f"Overall Accuracy: {accuracy_percentage:.2f}%")
+                            elif accuracy_percentage >= 55:
+                                st.warning(f"Overall Accuracy: {accuracy_percentage:.2f}%")
+                            else:
+                                st.error(f"⚠️ Low Overall Accuracy: {accuracy_percentage:.2f}% - Predictions may be unreliable!")
+
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Overall Accuracy", f"{lstm_system.overall_accuracy*100:.2f}%")
+                            with col2:
+                                st.metric("Upward Movement Accuracy", f"{lstm_system.up_accuracy*100:.2f}%")
+                            with col3:
+                                st.metric("Downward Movement Accuracy", f"{lstm_system.down_accuracy*100:.2f}%")
+                            
+                            if st.session_state.prediction_history:
+                                for idx, prev_pred in enumerate(st.session_state.prediction_history):
+                                    if 'verified' not in prev_pred or not prev_pred['verified']:
+                                        pred_end_time = pd.to_datetime(prev_pred['timestamp'])
+                                        if pred_end_time <= df['timestamp'].iloc[-1]:
+                                            closest_idx = df['timestamp'].searchsorted(pred_end_time)
+                                            if closest_idx < len(df):
+                                                actual_price = df['close'].iloc[closest_idx]
+                                                starting_price = prev_pred['starting_price']
+                                                
+
+                                                actual_direction = "UP" if actual_price > starting_price else "DOWN"
+                                                predicted_direction = prev_pred['direction']
+                                                st.session_state.prediction_history[idx]['verified'] = True
+                                                st.session_state.prediction_history[idx]['actual_price'] = float(actual_price)
+                                                st.session_state.prediction_history[idx]['correct'] = (actual_direction == predicted_direction)
+
+                            new_prediction = {
+                                'timestamp': future_time,  
+                                'predicted_price': float(predicted_price),
+                                'confidence': float(max(0.1, abs(avg_classification - 0.5) * 2)),
+                                'direction': "UP" if avg_classification > 0.5 else "DOWN",
+                                'starting_price': float(last_price),
+                                'verified': False 
+                            }
+
+                            st.session_state.prediction_history.append(new_prediction)
+                                                        
                         except Exception as e:
                             st.error(f"LSTM prediction calculation failed: {str(e)}")
                             st.error(traceback.format_exc())
@@ -540,34 +529,28 @@ def main():
                         st.error(f"LSTM data preparation failed: {str(e)}")
                         st.error(traceback.format_exc())
                         st.session_state.run_model = False
-                
+                #logic for the rf
                 elif st.session_state.model_type == "rf":
                     try:
                         pred, conf = make_prediction(df, interval=interval, symbol=crypto)
                         last_price = df['close'].iloc[-1]
                         
-                        # Create single prediction point
                         freq_map = {'5m': '5T', '15m': '15T', '30m': '30T', 
                                     '1h': '1H', '4h': '4H', '1d': '1D'}
                         freq = freq_map[interval]
                         future_time = df['timestamp'].iloc[-1] + pd.Timedelta(freq)
                         prediction_start_time = df['timestamp'].iloc[-1]
-                        
-                        # Convert prediction to price value
-                        predicted_price = last_price * 1.0015 if pred == 1 else last_price * 0.9985
-                        
-                        # Store in session state
+                        # the rf just gives mvement so ive pre set the price change
+                        predicted_price = last_price * 1.0015 if pred == 1 else last_price * 0.9985 
                         st.session_state.predictions = pred
                         st.session_state.prediction_df = pd.DataFrame({
                             'timestamp': [future_time],
                             'predicted_price': [predicted_price],
                             'confidence': [conf]
                         })
-                        
-                        # Mark the RF model as trained
+                    
                         st.session_state.rf_trained = True
-                        
-                        # Write to the RF log file
+
                         rf_log_data = {
                             "rf_trained": True,
                             "crypto": crypto,
@@ -585,23 +568,22 @@ def main():
                             ]
                         }
                         update_rf_log(rf_log_data)
-                        
-                        st.success("Random Forest prediction generated successfully!")
-                        
+                        st.success("Random Forest prediction generated successfully!")                       
                     except Exception as e:
                         st.error(f"Random Forest prediction failed: {str(e)}")
                         st.error(traceback.format_exc())
                         st.session_state.run_model = False
-                        pass
-                        
+                        pass                       
             except Exception as e:
                 st.error(f"Unexpected error in prediction system: {str(e)}")
                 st.error(traceback.format_exc())
-                st.session_state.run_model = False
-                            
+                st.session_state.run_model = False                   
 
-
-    # Add prediction to chart
+    if st.session_state.prediction_history:
+        correct_preds = [p for p in st.session_state.prediction_history 
+                        if 'verified' in p and p['verified'] and p['correct']]
+        incorrect_preds = [p for p in st.session_state.prediction_history 
+                        if 'verified' in p and p['verified'] and not p['correct']]
     if st.session_state.prediction_df is not None:
         pred_df = st.session_state.prediction_df
         
@@ -609,7 +591,7 @@ def main():
             x=pred_df['timestamp'],
             y=pred_df['predicted_price'],
             mode='markers',
-            name='Prediction',
+            name='Current Prediction',
             marker=dict(
                 color='gold',
                 size=12,
@@ -617,29 +599,56 @@ def main():
             )
         ), row=1, col=1)
         
-        # Add confidence annotation
-        model_type = getattr(st.session_state, 'model_type', 'rf')
-        if len(pred_df) > 0 and 'confidence' in pred_df.columns and pred_df['confidence'].iloc[0] is not None:
-            if model_type == "lstm":
-                # LSTM-specific annotation
-                predicted_direction = 'UP' if st.session_state.predictions > 0.5 else 'DOWN'
-                confidence_pct = min(100, max(0, int(pred_df['confidence'].iloc[0] * 100)))
-                
-                fig.add_annotation(
-                    x=pred_df['timestamp'].iloc[0],
-                    y=pred_df['predicted_price'].iloc[0],
-                    text=f"LSTM Prediction: {predicted_direction}<br>Confidence: {confidence_pct}%",
-                    showarrow=True,
-                    arrowhead=2,
-                    ax=0,
-                    ay=-40,
-                    font=dict(color="gold", size=12)
-                )
-            else:
-                # RF-specific annotation
-                predicted_direction = 'UP' if st.session_state.predictions == 1 else 'DOWN'
-                confidence_pct = min(100, max(0, int(pred_df['confidence'].iloc[0] * 100)))
-    # Update layout
+        if st.session_state.prediction_history:
+            correct_preds = [p for p in st.session_state.prediction_history 
+                            if 'verified' in p and p['verified'] and p['correct']]
+            incorrect_preds = [p for p in st.session_state.prediction_history 
+                            if 'verified' in p and p['verified'] and not p['correct']]
+            if correct_preds:
+                fig.add_trace(go.Scatter(
+                    x=[pd.to_datetime(p['timestamp']) for p in correct_preds],
+                    y=[p['predicted_price'] for p in correct_preds],
+                    mode='markers',
+                    name='Correct Predictions',
+                    marker=dict(
+                        color='green',
+                        size=10,
+                        symbol='circle',
+                        line=dict(width=2, color='white')
+                    )
+                ), row=1, col=1)
+            if incorrect_preds:
+                fig.add_trace(go.Scatter(
+                    x=[pd.to_datetime(p['timestamp']) for p in incorrect_preds],
+                    y=[p['predicted_price'] for p in incorrect_preds],
+                    mode='markers',
+                    name='Incorrect Predictions', 
+                    marker=dict(
+                        color='red',
+                        size=10,
+                        symbol='x',
+                        line=dict(width=2, color='white')
+                    )
+                ), row=1, col=1)
+            model_type = getattr(st.session_state, 'model_type', 'rf')
+            if len(pred_df) > 0 and 'confidence' in pred_df.columns and pred_df['confidence'].iloc[0] is not None:
+                if model_type == "lstm":
+                    predicted_direction = 'UP' if st.session_state.predictions > 0.5 else 'DOWN'
+                    confidence_pct = min(100, max(0, int(pred_df['confidence'].iloc[0] * 100)))
+                    
+                    fig.add_annotation(
+                        x=pred_df['timestamp'].iloc[0],
+                        y=pred_df['predicted_price'].iloc[0],
+                        text=f"LSTM Prediction: {predicted_direction}<br>Confidence: {confidence_pct}%",
+                        showarrow=True,
+                        arrowhead=2,
+                        ax=0,
+                        ay=-40,
+                        font=dict(color="gold", size=12)
+                    )
+                else:
+                    predicted_direction = 'UP' if st.session_state.predictions == 1 else 'DOWN'
+                    confidence_pct = min(100, max(0, int(pred_df['confidence'].iloc[0] * 100)))
     fig.update_layout(
         height=800,
         template="plotly_dark",
@@ -648,10 +657,37 @@ def main():
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
 
-    # Display the chart
+    if st.session_state.prediction_history:
+        st.subheader("Prediction History & Performance")
+
+        verified_preds = [p for p in st.session_state.prediction_history if 'verified' in p and p['verified']]
+        correct_preds = [p for p in verified_preds if p['correct']]       
+        total_verified = len(verified_preds)
+        total_correct = len(correct_preds)       
+        if total_verified > 0:
+            accuracy = (total_correct / total_verified) * 100
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Predictions", f"{total_verified}")
+            with col2:
+                st.metric("Correct Predictions", f"{total_correct}")
+            with col3:
+                st.metric("Live Accuracy", f"{accuracy:.2f}%")
+            with st.expander("View Prediction History"):
+                history_df = pd.DataFrame(verified_preds)
+                history_df['Time'] = pd.to_datetime(history_df['timestamp'])
+                history_df['Start Price'] = history_df['starting_price']
+                history_df['Predicted'] = history_df['direction']
+                history_df['Actual Price'] = history_df['actual_price']
+                history_df['Result'] = history_df['correct'].apply(lambda x: "✅ Correct" if x else "❌ Incorrect")
+                
+                st.dataframe(
+                    history_df[['Time', 'Start Price', 'Predicted', 'Actual Price', 'Result']],
+                    use_container_width=True
+                )
     st.plotly_chart(fig, use_container_width=True)
     st.subheader("Indicator Summary & Trend Signals")
-
+    # direction based on indicators
     def display_signal(name, trend, details):
         color = 'green' if trend == 'up' else 'red'
         arrow = '⬆️' if trend == 'up' else '⬇️'
@@ -700,7 +736,6 @@ def main():
                 else:
                     display_signal("Bollinger Bands", 'up', "Price within bands — stable trend.")
 
-    # Call the function AFTER it's defined, not inside it
     display_trend_signals(df, indicators_selected)    
 if __name__ == "__main__":
     main()
