@@ -92,7 +92,7 @@ def main():
     logger = logging.getLogger(__name__)
     st.title("Crypto Report")
     st.header("A simple and easy to use prediction app")
-
+    st.header("Note: Time shown is UTC+0")
     # sidebar 
     with st.sidebar:
         st.header("Chart Settings")
