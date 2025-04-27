@@ -45,17 +45,14 @@ def fetch_stock_data(ticker='AAPL', interval='60m', period='7d'):
         st.error(f"No data found for {ticker} with interval {interval} and period {period}.")
         return None
 
-    # Reset index and handle the timestamp column
     df.reset_index(inplace=True)
     if 'Datetime' in df.columns:
         df.rename(columns={'Datetime': 'timestamp'}, inplace=True)
     elif 'Date' in df.columns:
         df.rename(columns={'Date': 'timestamp'}, inplace=True)
 
-    # Ensure the timestamp column is in datetime format
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    # Rename columns for consistency
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
     df = df[['timestamp', 'Open', 'High', 'Low', 'Close']].rename(columns={
         'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close'
     })
@@ -67,20 +64,16 @@ for stock in selected_stocks:
     if df is None:
         continue
 
-    # Chart type toggle
+    # chart type 
     chart_type = st.radio("Select chart type", ["Line Chart", "Candlestick"], horizontal=True, key=f"chart_{stock}")
 
-    # Calculate the number of rows for indicators
     indicator_rows = sum(1 for ind in indicators_selected if ind in ['RSI', 'ATR'])
 
-    # Ensure indicator_rows is at least 1 to avoid division by zero
     if indicator_rows == 0:
         indicator_rows = 1
 
-    # Setup subplot layout
-    row_count = 1 + indicator_rows  # 1 for price + indicators
-    row_index = 2  # Start adding indicators from row 2
-
+    row_count = 1 + indicator_rows  
+    row_index = 2  
     fig = make_subplots(
         rows=row_count, cols=1,
         shared_xaxes=True,
@@ -90,7 +83,7 @@ for stock in selected_stocks:
             [ind for ind in indicators_selected if ind in ['RSI', 'ATR']]
     )
 
-    # Add price chart
+    # price chart
     if chart_type == "Line Chart":
         fig.add_trace(go.Scatter(
             x=df['timestamp'],
@@ -98,7 +91,7 @@ for stock in selected_stocks:
             mode='lines',
             name='Price'
         ), row=1, col=1)
-    else:  # Candlestick
+    else:  # candlestick
         fig.add_trace(go.Candlestick(
             x=df['timestamp'],
             open=df['open'],
@@ -110,7 +103,7 @@ for stock in selected_stocks:
             decreasing=dict(line=dict(color='red'))
         ), row=1, col=1)
 
-    # Add indicators
+    # indicators
     if 'SMA' in indicators_selected:
         df = calculate_sma(df)
         fig.add_trace(go.Scatter(x=df['timestamp'], y=df['sma'], name='SMA'), row=1, col=1)
@@ -138,11 +131,11 @@ for stock in selected_stocks:
         arima_future = predict_arima(df, steps=len(df))
         fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')), row=1, col=1)
 
-    # Output chart
+    # output chart
     st.subheader(f"Live {stock} Chart ({interval})")
     st.plotly_chart(fig, use_container_width=True)
 
-# Trend Summary Section
+# trends
 st.subheader("Indicator Summary & Trend Signals")
 
 def display_signal(name, trend, details):

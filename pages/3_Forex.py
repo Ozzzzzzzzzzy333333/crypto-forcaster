@@ -29,11 +29,11 @@ indicators_selected = st.sidebar.multiselect(
 
 selected_pairs = st.sidebar.multiselect(
     "Select Forex Pairs", 
-    ['EUR/USD', 'GBP/USD', 'USD/JPY'],  # Top 3 Forex pairs
+    ['EUR/USD', 'GBP/USD', 'USD/JPY'],  
     default=['EUR/USD']
 )
-# Button to toggle the indicator guide
-if st.sidebar.button("📘 What do these indicators mean?"):
+# guide
+if st.sidebar.button("What do these indicators mean?"):
 
     st.sidebar.markdown("Technical Indicator Guide")
 
@@ -72,12 +72,10 @@ if st.sidebar.button("📘 What do these indicators mean?"):
     " A value of 0.5 indicates a more 'random' movement, while values above 0.5 " \
     "indicate a clearer trend.")
 
-# Fixed interval set to '1h'
+# fixed due to api limit
 fixed_interval = '1h'
 
-# fetch forex data
 def fetch_forex_data(pair='EUR/USD', interval=fixed_interval, period='7d'):
-    # Map Forex pairs to Yahoo Finance tickers
     forex_ticker_map = {
         'EUR/USD': 'EURUSD=X',
         'GBP/USD': 'GBPUSD=X',
@@ -89,7 +87,6 @@ def fetch_forex_data(pair='EUR/USD', interval=fixed_interval, period='7d'):
         st.error(f"Unsupported Forex pair: {pair}")
         return None
 
-    # Fetch data using yfinance
     forex = yf.Ticker(ticker)
     df = forex.history(interval=interval, period=period)
 
@@ -97,7 +94,6 @@ def fetch_forex_data(pair='EUR/USD', interval=fixed_interval, period='7d'):
         st.error(f"No data found for {pair} with interval {interval} and period {period}.")
         return None
 
-    # Reset index and rename columns for consistency
     df.reset_index(inplace=True)
     df.rename(columns={'Datetime': 'timestamp'}, inplace=True)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -113,19 +109,15 @@ for pair in selected_pairs:
     if df is None:
         continue
 
-    # Chart type toggle
     chart_type = st.radio("Select chart type", ["Line Chart", "Candlestick"], horizontal=True, key=f"chart_{pair}")
 
-    # Calculate the number of rows for indicators
     indicator_rows = sum(1 for ind in indicators_selected if ind in ['RSI', 'ATR'])
 
-    # Ensure indicator_rows is at least 1 to avoid division by zero
     if indicator_rows == 0:
         indicator_rows = 1
 
-    # Setup subplot layout
-    row_count = 1 + indicator_rows  # 1 for price + indicators
-    row_index = 2  # Start adding indicators from row 2
+    row_count = 1 + indicator_rows  
+    row_index = 2  
 
     fig = make_subplots(
         rows=row_count, cols=1,
@@ -144,7 +136,7 @@ for pair in selected_pairs:
             mode='lines',
             name='Price'
         ), row=1, col=1)
-    else:  # Candlestick
+    else:  # candlestick
         fig.add_trace(go.Candlestick(
             x=df['timestamp'],
             open=df['open'],
@@ -156,7 +148,7 @@ for pair in selected_pairs:
             decreasing=dict(line=dict(color='red'))
         ), row=1, col=1)
 
-    # Add indicators
+    # indicators
     if 'SMA' in indicators_selected:
         df = calculate_sma(df)
         fig.add_trace(go.Scatter(x=df['timestamp'], y=df['sma'], name='SMA'), row=1, col=1)
@@ -184,11 +176,11 @@ for pair in selected_pairs:
         arima_future = predict_arima(df, steps=len(df))
         fig.add_trace(go.Scatter(x=arima_future['timestamp'], y=arima_future['arima_pred'], name='ARIMA Forecast', line=dict(dash='dash')), row=1, col=1)
 
-    # Output chart
+
     st.subheader(f"Live {pair} Chart ({fixed_interval})")
     st.plotly_chart(fig, use_container_width=True)
 
-# Trend Summary Section
+# Trends
 st.subheader("Indicator Summary & Trend Signals")
 
 def display_signal(name, trend, details):

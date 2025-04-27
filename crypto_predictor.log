@@ -1191,3 +1191,48 @@ tornado.websocket.WebSocketClosedError
 2025-04-25 19:20:24,899 - INFO - Fetched 200 rows of data for BTCUSDT at interval 5m
 2025-04-25 19:27:27,504 - INFO - Fetched 200 rows of data for BTCUSDT at interval 5m
 2025-04-25 19:32:55,976 - INFO - Fetched 200 rows of data for BTCUSDT at interval 5m
+2025-04-26 12:31:50,376 - INFO - Fetched 200 rows of data for BTCUSDT at interval 5m
+2025-04-26 12:32:08,694 - INFO - Fetched 200 rows of data for BTCUSDT at interval 1d
+2025-04-26 12:32:10,325 - INFO - Training model using data from 2025-04-19 11:22:10.325146 to 2025-04-26 11:22:10.325146
+2025-04-26 12:32:13,173 - INFO - Making live prediction...
+2025-04-26 12:32:17,653 - INFO - Fetched 200 rows of data for BTCUSDT at interval 1h
+2025-04-26 12:32:20,037 - INFO - Training model using data from 2025-04-19 11:22:20.037564 to 2025-04-26 11:22:20.037564
+2025-04-26 12:32:26,518 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 5, 'min_samples_split': 10, 'n_estimators': 50}
+2025-04-26 12:32:26,620 - INFO - Training completed - Accuracy: 100.00%
+2025-04-26 12:32:26,621 - INFO - Making live prediction...
+2025-04-26 12:32:26,890 - INFO - [2025-04-26 11:32:26] Prediction: DOWN | Confidence: 0.79
+2025-04-26 12:32:44,447 - INFO - Fetched 200 rows of data for BNBUSDT at interval 1h
+2025-04-26 12:32:44,526 - INFO - Training model using data from 2025-04-19 11:22:44.526945 to 2025-04-26 11:22:44.526945
+2025-04-26 12:32:48,029 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 5, 'min_samples_split': 10, 'n_estimators': 100}
+2025-04-26 12:32:48,242 - INFO - Training completed - Accuracy: 97.99%
+2025-04-26 12:32:48,243 - INFO - Making live prediction...
+2025-04-26 12:32:48,528 - INFO - [2025-04-26 11:32:48] Prediction: DOWN | Confidence: 0.90
+2025-04-26 12:32:59,898 - INFO - Training model using data from 2025-04-19 11:22:59.898451 to 2025-04-26 11:22:59.898451
+2025-04-26 12:33:03,324 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 10, 'min_samples_split': 10, 'n_estimators': 100}
+2025-04-26 12:33:03,498 - INFO - Training completed - Accuracy: 97.99%
+2025-04-26 12:33:03,499 - INFO - Making live prediction...
+2025-04-26 12:33:04,035 - INFO - [2025-04-26 11:33:04] Prediction: DOWN | Confidence: 0.88
+2025-04-26 12:33:21,661 - INFO - Fetched 200 rows of data for BNBUSDT at interval 1d
+2025-04-26 12:33:21,734 - INFO - Training model using data from 2025-04-19 11:23:21.734399 to 2025-04-26 11:23:21.734399
+2025-04-26 12:33:24,653 - INFO - Making live prediction...
+2025-04-26 12:44:27,142 - INFO - Fetched 200 rows of data for BTCUSDT at interval 5m
+2025-04-26 12:44:36,825 - INFO - Fetched 200 rows of data for BTCUSDT at interval 4h
+2025-04-26 12:44:45,066 - INFO - Fetched 200 rows of data for BTCUSDT at interval 30m
+2025-04-26 12:44:47,582 - INFO - Training model using data from 2025-04-19 11:34:47.582769 to 2025-04-26 11:34:47.582769
+2025-04-26 12:44:54,660 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 5, 'min_samples_split': 10, 'n_estimators': 50}
+2025-04-26 12:44:54,806 - INFO - Training completed - Accuracy: 95.91%
+2025-04-26 12:44:54,806 - INFO - Making live prediction...
+2025-04-26 12:44:55,086 - INFO - [2025-04-26 11:44:55] Prediction: DOWN | Confidence: 0.94
+2025-04-26 14:36:50,899 - INFO - Fetched 200 rows of data for BTCUSDT at interval 5m
+2025-04-26 14:36:56,203 - INFO - Fetched 200 rows of data for ETHUSDT at interval 5m
+2025-04-26 14:36:59,606 - INFO - Fetched 200 rows of data for ETHUSDT at interval 1h
+2025-04-26 14:40:37,017 - INFO - Training model using data from 2025-04-19 13:30:37.017405 to 2025-04-26 13:30:37.017405
+2025-04-26 14:40:43,282 - INFO - Best model parameters: {'class_weight': 'balanced', 'max_depth': 5, 'min_samples_split': 10, 'n_estimators': 50}
+2025-04-26 14:40:43,397 - INFO - Training completed - Accuracy: 99.33%
+2025-04-26 14:40:43,397 - INFO - Making live prediction...
+2025-04-26 14:40:43,660 - INFO - [2025-04-26 13:40:43] Prediction: DOWN | Confidence: 0.82
+2025-04-26 19:54:54,610 - INFO - Fetched 200 rows of data for BTCUSDT at interval 5m
+2025-04-26 19:55:51,473 - INFO - Fetched 200 rows of data for ETHUSDT at interval 5m
+2025-04-26 19:55:52,869 - INFO - Fetched 200 rows of data for ETHUSDT at interval 1h
+2025-04-27 16:42:28,636 - INFO - Fetched 200 rows of data for ETHUSDT at interval 1h
+2025-04-27 16:42:42,835 - INFO - Fetched 200 rows of data for ETHUSDT at interval 30m

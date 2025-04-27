@@ -1,6 +1,5 @@
 # imports
 import streamlit as st
-st.set_page_config(page_title="Crypto Predictor", layout="wide")
 import traceback
 import pandas as pd
 import plotly.graph_objs as go
@@ -17,7 +16,7 @@ from indicators import (
 from predictor import make_prediction
 from lstm import LivePredictionSystem, initial_training
 import json
-
+st.set_page_config(page_title="Crypto Predictor", layout="wide")
 # session state 
 if 'run_model' not in st.session_state:
     st.session_state.run_model = False
@@ -131,7 +130,7 @@ def main():
                 """
                 <a href="/RFinfo" target="_blank">
                     <button style="border: none; padding: 5px 10px; cursor: pointer;">
-                        ℹ️ Info
+                        Info
                     </button>
                 </a>
                 """,
@@ -153,7 +152,7 @@ def main():
                 """
                 <a href="/LSTMinfo" target="_blank">
                     <button style=" border: none; padding: 5px 10px; cursor: pointer;">
-                        ℹ️ Info
+                        Info
                     </button>
                 </a>
                 """,
@@ -223,13 +222,7 @@ def main():
         df = calculate_obv(df)
     if 'ATR' in indicators_selected:
         df = calculate_atr(df)
-    df = calculate_sma(df)
-    df = calculate_ema(df)
-    df = calculate_bollinger_bands(df)
-    df = calculate_rsi(df)
-    df = calculate_macd(df)
-    df = calculate_obv(df)
-    df = calculate_atr(df)
+
     df['prev_close'] = df['close'].shift(1)
     df['log_return'] = np.log(df['close'] / df['close'].shift(1))  
     df['price_change'] = df['close'].diff()
@@ -238,15 +231,7 @@ def main():
         df[f'volatility_{window}'] = df['close'].rolling(window).std()
     df['volume_ma_15'] = df['volume'].rolling(15).mean()
     df['volume_change'] = df['volume'].diff()
-    df['obv'] = (np.sign(df['close'].diff()) * df['volume']).fillna(0).cumsum()
     df['buy_ratio'] = df['volume'] / (df['volume'].rolling(15).sum())
-    df['bollinger_upper'] = df['close'] + (2 * df['close'].rolling(20).std())
-    df['bollinger_lower'] = df['close'] - (2 * df['close'].rolling(20).std())
-    df['stoch_k'] = ((df['close'] - df['low'].rolling(14).min()) /
-                     (df['high'].rolling(14).max() - df['low'].rolling(14).min())) * 100
-    df['stoch_d'] = df['stoch_k'].rolling(3).mean()
-    df['williams_r'] = ((df['high'].rolling(14).max() - df['close']) /
-                        (df['high'].rolling(14).max() - df['low'].rolling(14).min())) * -100
 
     df = df.dropna()
 
@@ -378,7 +363,7 @@ def main():
                         seq_length = lstm_system.seq_length
                         st.info("Using pre-trained LSTM model for prediction.")
                     else:
-                        st.warning("Initializing LSTM model (this may take a few minutes)...")
+                        st.warning("Initializing LSTM model (this may take up to 5 minutes)...")
                         try:
                             models, scaler_features, scaler_target, features, seq_length, pred_length, overall_acc, up_acc, down_acc = initial_training(
                                 symbol=binance_symbol, interval=interval
@@ -418,7 +403,7 @@ def main():
                         )
                         df = df.dropna()
                         if len(df) < seq_length:
-                            st.error(f"Not enough data for prediction after preprocessing. Need {seq_length} points, have {len(df)}")
+                            st.error(f"Not enough data for prediction after preprocessing. Need {seq_length} only have {len(df)}")
                             st.session_state.run_model = False
                             return
 
@@ -473,7 +458,7 @@ def main():
                             }
                             update_lstm_log(lstm_log_data)                           
                             st.success("LSTM prediction generated successfully!")
-                            st.markdown("### LSTM Model Training Accuracy")
+                            st.markdown("LSTM Model Training Accuracy")
                             
                             # message for overall accuracy
                             accuracy_percentage = lstm_system.overall_accuracy * 100
@@ -482,7 +467,7 @@ def main():
                             elif accuracy_percentage >= 55:
                                 st.warning(f"Overall Accuracy: {accuracy_percentage:.2f}%")
                             else:
-                                st.error(f"⚠️ Low Overall Accuracy: {accuracy_percentage:.2f}% - Predictions may be unreliable!")
+                                st.error(f"Low Overall Accuracy: {accuracy_percentage:.2f}% - you may want to retrain the model.")
 
                             col1, col2, col3 = st.columns(3)
                             with col1:
@@ -531,6 +516,11 @@ def main():
                         st.session_state.run_model = False
                 #logic for the rf
                 elif st.session_state.model_type == "rf":
+                    # chexk if interval to big
+                    if interval in ['4h', '1d']:
+                        st.error("Random Forest cannot be used for 4h or 1d intervals. Please use LSTM for these timeframes.")
+                        st.session_state.run_model = False
+                        return  # stop execution 
                     try:
                         pred, conf = make_prediction(df, interval=interval, symbol=crypto)
                         last_price = df['close'].iloc[-1]
@@ -540,7 +530,7 @@ def main():
                         freq = freq_map[interval]
                         future_time = df['timestamp'].iloc[-1] + pd.Timedelta(freq)
                         prediction_start_time = df['timestamp'].iloc[-1]
-                        # the rf just gives mvement so ive pre set the price change
+                        # the rf just gives movement so I've pre-set the price change
                         predicted_price = last_price * 1.0015 if pred == 1 else last_price * 0.9985 
                         st.session_state.predictions = pred
                         st.session_state.prediction_df = pd.DataFrame({
@@ -573,7 +563,8 @@ def main():
                         st.error(f"Random Forest prediction failed: {str(e)}")
                         st.error(traceback.format_exc())
                         st.session_state.run_model = False
-                        pass                       
+                        pass
+                     
             except Exception as e:
                 st.error(f"Unexpected error in prediction system: {str(e)}")
                 st.error(traceback.format_exc())
@@ -586,7 +577,7 @@ def main():
                         if 'verified' in p and p['verified'] and not p['correct']]
     if st.session_state.prediction_df is not None:
         pred_df = st.session_state.prediction_df
-        
+    # plot prediction    
         fig.add_trace(go.Scatter(
             x=pred_df['timestamp'],
             y=pred_df['predicted_price'],
@@ -598,7 +589,7 @@ def main():
                 symbol='diamond'
             )
         ), row=1, col=1)
-        
+        # verfify lstm predictions
         if st.session_state.prediction_history:
             correct_preds = [p for p in st.session_state.prediction_history 
                             if 'verified' in p and p['verified'] and p['correct']]
@@ -656,7 +647,7 @@ def main():
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-
+    # prediction history
     if st.session_state.prediction_history:
         st.subheader("Prediction History & Performance")
 
@@ -697,7 +688,7 @@ def main():
             f"<span style='color:#ccc;'>{details}</span>"
             f"</div>", unsafe_allow_html=True
         )
-
+    # easily view movement, based on more likely outcome of the trend
     def display_trend_signals(df, indicators_selected):
         for indicator in indicators_selected:
             if indicator == 'SMA':

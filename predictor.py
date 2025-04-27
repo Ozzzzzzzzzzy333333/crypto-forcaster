@@ -101,7 +101,7 @@ class LiveCryptoPredictor:
         end_dt = datetime.utcnow() - timedelta(minutes=self.gap_minutes)
         start_dt = end_dt - timedelta(days=self.train_days)
 
-        logger.info(f"Training model using data from {start_dt} to {end_dt}")
+        logger.info(f"using data from {start_dt} to {end_dt}")
         df = self.fetch_data(start_dt, end_dt)
         if df.empty:
             return False
@@ -117,7 +117,7 @@ class LiveCryptoPredictor:
         self.model.fit(X_train, y_train)
         y_pred = self.model.predict(X_train)
         acc = accuracy_score(y_train, y_pred)
-        logger.info(f"Training completed - Accuracy: {acc:.2%}")
+        logger.info(f"accuracy: {acc:.2%}")
         return True
 
     def make_prediction(self):

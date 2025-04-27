@@ -16,7 +16,7 @@ import logging
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+# data fetching
 def fetch_data(symbol='BTCUSDT', interval='5m', limit=2000, is_live=False):
     try:
         url = f'https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}'
@@ -48,7 +48,7 @@ def fetch_data(symbol='BTCUSDT', interval='5m', limit=2000, is_live=False):
             return pd.DataFrame()  
         else:
             raise Exception(error_msg) 
-        
+# indicators 
 def add_technical_indicators(df, is_live=False):
     if df.empty:
         return df
@@ -104,7 +104,7 @@ def compute_macd(series, fast=12, slow=26, signal=9):
     macd_signal = macd.ewm(span=signal, adjust=False).mean()
     return macd, macd_signal
 
-# Add ADX computation
+
 def compute_adx(high, low, close, window):
     plus_dm = high.diff()
     minus_dm = low.diff()
@@ -121,7 +121,7 @@ def compute_adx(high, low, close, window):
     dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
     adx = dx.rolling(window).mean()
     return adx
-
+# changes data to be used for lstm
 def create_sequences(features, targets, seq_length, pred_length, is_live=False):
     X, y_reg, y_class = [], [], []
     if is_live and len(features) < seq_length + pred_length:
@@ -134,7 +134,7 @@ def create_sequences(features, targets, seq_length, pred_length, is_live=False):
         y_class.append(1 if targets[i + pred_length - 1] > targets[i + pred_length - 2] else 0)    
     return np.array(X), np.array(y_reg), np.array(y_class)
 
-
+#creates 2 lstm layers (128&64)
 def build_model(input_shape):
     input_layer = tf.keras.layers.Input(shape=input_shape)
     
@@ -145,9 +145,9 @@ def build_model(input_shape):
     x = LayerNormalization()(x)
     x = Dropout(0.2)(x)
     
-    reg_output = Dense(1, name='regression_output')(x)
+    reg_output = Dense(1, name='regression_output')(x) # price
 
-    class_output = Dense(1, activation='sigmoid', name='classification_output')(x)
+    class_output = Dense(1, activation='sigmoid', name='classification_output')(x) # direction
     
     model = tf.keras.Model(inputs=input_layer, outputs=[reg_output, class_output])
     model.compile(
@@ -162,7 +162,7 @@ def build_model(input_shape):
         }
     )
     return model
-
+# for finding a change in diretion ( this isnt fully implemented yet)
 def find_turning_points(series):
     turning_points = []
     for i in range(2, len(series)-2):
@@ -175,7 +175,7 @@ def find_turning_points(series):
             if (next_diff > 0 and next_next_diff > 0) or (next_diff < 0 and next_next_diff < 0):
                 turning_points.append(i)
     return turning_points
-
+# trains the lstm
 def initial_training(symbol='BTCUSDT', interval='5m'):
     print(f"Starting initial model training for {symbol} with {interval} interval...")
 
@@ -216,7 +216,7 @@ def initial_training(symbol='BTCUSDT', interval='5m'):
         X_train, y_reg_train, y_class_train = X[train_idx], y_reg[train_idx], y_class[train_idx]
         X_val, y_reg_val, y_class_val = X[val_idx], y_reg[val_idx], y_class[val_idx]
         model = build_model((X_train.shape[1], X_train.shape[2]))
-        
+        # tracks performence
         callbacks = [
             EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True),
             ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=4, min_lr=1e-6)
@@ -263,7 +263,7 @@ def initial_training(symbol='BTCUSDT', interval='5m'):
     print(f"Average Down Direction Accuracy: {avg_down_accuracy:.4f}")
     
     return models, scaler_features, scaler_target, features, seq_length, pred_length, avg_classification_accuracy, avg_up_accuracy, avg_down_accuracy
-
+#uses trained model for prediction
 class LivePredictionSystem:
     def __init__(self, models, scaler_features, scaler_target, features, seq_length, pred_length, 
                  symbol='BTCUSDT', interval='5m', overall_accuracy=None, up_accuracy=None, down_accuracy=None):
@@ -295,7 +295,7 @@ def get_interval_seconds(interval):
         return value * 24 * 60 * 60
     else:
         return 300  
-    
+#runs the whole system
 def run_parallel_systems(symbol, interval, run_duration_hours):
     print(f"Running prediction system for {symbol} with {interval} interval for {run_duration_hours} hours.")
 
