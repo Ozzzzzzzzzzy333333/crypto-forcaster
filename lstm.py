@@ -1,3 +1,4 @@
+# the lstm in particular has alot of in terminal outputs, this is due to the development stage and the open source nauter of this buisness venture
 # imports
 import numpy as np
 import pandas as pd
